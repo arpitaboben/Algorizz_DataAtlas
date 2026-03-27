@@ -21,4 +21,3 @@ def search(request):
     desc = data.get("description")
     data_sources = data.get("preferred_sources")
 
-    

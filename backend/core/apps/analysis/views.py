@@ -9,4 +9,5 @@ def semantic_search(user_q):
     
     #running scemantic analysis on user query and sending it to integrations as structured query for data retrieval
     pass
+
     
