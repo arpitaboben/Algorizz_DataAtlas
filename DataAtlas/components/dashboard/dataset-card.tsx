@@ -25,11 +25,23 @@ const qualityColors: Record<string, string> = {
 };
 
 export function DatasetCard({ dataset }: DatasetCardProps) {
-  const formattedDate = new Date(dataset.lastUpdated).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  let formattedDate = 'Unknown';
+  try {
+    if (dataset.lastUpdated) {
+      formattedDate = new Date(dataset.lastUpdated).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  } catch {
+    formattedDate = 'Unknown';
+  }
+
+  const handleClick = () => {
+    // Store dataset info so the detail page can access it for analysis
+    sessionStorage.setItem(`dataset-${dataset.id}`, JSON.stringify(dataset));
+  };
 
   return (
     <div className="group rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-lg">
@@ -43,7 +55,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
           </Badge>
         </div>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-          <span className="text-sm font-bold text-primary">{dataset.relevanceScore}%</span>
+          <span className="text-sm font-bold text-primary">{Math.round(dataset.relevanceScore)}%</span>
         </div>
       </div>
 
@@ -52,7 +64,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
       </h3>
 
       <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-        {dataset.description}
+        {dataset.description || 'No description available'}
       </p>
 
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
@@ -73,7 +85,7 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
       </div>
 
       <div className="mb-4 flex flex-wrap gap-1.5">
-        {dataset.tags.slice(0, 4).map((tag) => (
+        {(dataset.tags || []).slice(0, 4).map((tag) => (
           <span
             key={tag}
             className="rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
@@ -81,19 +93,20 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
             {tag}
           </span>
         ))}
-        {dataset.tags.length > 4 && (
+        {(dataset.tags || []).length > 4 && (
           <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
             +{dataset.tags.length - 4}
           </span>
         )}
       </div>
 
-      <Link href={`/dataset/${dataset.id}`}>
+      <Link href={`/dataset/${dataset.id}`} onClick={handleClick}>
         <Button className="w-full gap-2" size="sm">
-          View Dataset
+          View & Analyze Dataset
           <ExternalLink className="h-3.5 w-3.5" />
         </Button>
       </Link>
     </div>
   );
 }
+

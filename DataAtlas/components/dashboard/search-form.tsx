@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,10 +20,18 @@ import { SearchFilters } from '@/lib/types';
 interface SearchFormProps {
   onSearch: (query: string, description: string, filters: SearchFilters) => void;
   isLoading?: boolean;
+  initialQuery?: string;
 }
 
-export function SearchForm({ onSearch, isLoading }: SearchFormProps) {
-  const [query, setQuery] = useState('');
+export function SearchForm({ onSearch, isLoading, initialQuery }: SearchFormProps) {
+  const [query, setQuery] = useState(initialQuery || '');
+
+  // Restore query when navigating back with cached results
+  useEffect(() => {
+    if (initialQuery) {
+      setQuery(initialQuery);
+    }
+  }, [initialQuery]);
   const [description, setDescription] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({

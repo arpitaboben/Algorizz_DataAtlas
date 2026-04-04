@@ -56,6 +56,10 @@ export interface DatasetDetails extends Dataset {
   correlations: Correlation[];
   distributions: Distribution[];
   mlRecommendation: MLRecommendation;
+  insights?: string[];
+  score?: number;
+  scoreExplanation?: string;
+  warnings?: string[];
 }
 
 export interface Correlation {
