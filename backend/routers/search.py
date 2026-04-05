@@ -15,8 +15,8 @@ router = APIRouter()
 @router.post("/search", response_model=SearchResponse)
 async def search(request: SearchRequest):
     """
-    Search datasets across all available sources.
-    
+    Search datasets across all available sources (Kaggle, HuggingFace, GitHub).
+
     Accepts a natural language query, optional description for semantic boost,
     and filters. Returns datasets ranked by semantic relevance.
     """

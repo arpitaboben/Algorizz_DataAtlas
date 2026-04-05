@@ -38,12 +38,16 @@ async def lifespan(app: FastAPI):
         logger.warning(f"⚠️ Could not load embedding model: {e}")
         logger.warning("   Semantic search will fall back to keyword matching")
 
-    # Check Kaggle API
+    # Log available data sources
     from config import settings
+    sources = []
     if settings.kaggle_available:
-        logger.info(f"📡 Kaggle API configured (user: {settings.KAGGLE_USERNAME})")
+        sources.append(f"Kaggle (user: {settings.KAGGLE_USERNAME})")
     else:
         logger.warning("⚠️ Kaggle API NOT configured — set KAGGLE_USERNAME and KAGGLE_KEY in .env")
+    sources.append("HuggingFace (public API)")
+    sources.append("GitHub (public API)")
+    logger.info(f"📡 Available data sources: {', '.join(sources)}")
 
     yield  # ← Server is running
 

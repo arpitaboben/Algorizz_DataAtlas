@@ -4,11 +4,6 @@ Application configuration loaded from environment variables.
 import os
 from pathlib import Path
 from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
-
-# Load .env from project root (parent of Backend/)
-_env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(_env_path)
 
 
 class Settings(BaseSettings):
@@ -24,7 +19,7 @@ class Settings(BaseSettings):
 
     # --- App ---
     MAX_DATASET_SIZE_MB: int = 200
-    DOWNLOAD_DIR: str = "./downloads"
+    DOWNLOAD_DIR: str = str(Path(__file__).resolve().parent / "downloads")
 
     @property
     def kaggle_available(self) -> bool:
@@ -34,9 +29,10 @@ class Settings(BaseSettings):
     def max_dataset_bytes(self) -> int:
         return self.MAX_DATASET_SIZE_MB * 1024 * 1024
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = {
+        "env_file": str(Path(__file__).resolve().parent.parent / ".env"),
+        "extra": "ignore",
+    }
 
 
 settings = Settings()
