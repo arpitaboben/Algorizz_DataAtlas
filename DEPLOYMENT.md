@@ -4,14 +4,15 @@ Complete guide for deploying Data Atlas to production.
 
 ---
 
+.
 ## Table of Contents
-1. [Local Development](#1-local-development)
-2. [VPS Deployment](#2-vps-deployment)
-3. [Vercel + Railway](#3-vercel--railway)
-4. [Environment Variables](#4-environment-variables)
-5. [Architecture Overview](#5-architecture-overview)
-6. [Health Checks & Monitoring](#6-health-checks--monitoring)
-7. [Troubleshooting](#7-troubleshooting)
+1. [Local Development](#1:local-development)
+2. [VPS Deployment](#2:vps-deployment)
+3. [Vercel + Railway](#3:vercel--railway)
+4. [Environment Variables](#4:environment-variables)
+5. [Architecture Overview](#5:architecture-overview)
+6. [Health Checks & Monitoring](#6:health-checks--monitoring)
+7. [Troubleshooting](#7:troubleshooting)
 
 ---
 
