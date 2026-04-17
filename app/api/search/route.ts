@@ -1,97 +1,34 @@
 import { NextResponse } from 'next/server';
-import { mockDatasets } from '@/lib/mock-data';
-import { SearchFilters } from '@/lib/types';
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { query, description, filters, page = 1, limit = 20 } = body;
 
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Proxy to FastAPI backend
+    const backendResp = await fetch(`${BACKEND_URL}/api/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
-    let results = [...mockDatasets];
-
-    // Filter by query
-    if (query) {
-      const lowerQuery = query.toLowerCase();
-      results = results.filter(
-        (d) =>
-          d.title.toLowerCase().includes(lowerQuery) ||
-          d.description.toLowerCase().includes(lowerQuery) ||
-          d.tags.some((t: string) => t.toLowerCase().includes(lowerQuery))
+    if (!backendResp.ok) {
+      const error = await backendResp.json().catch(() => ({ detail: 'Backend request failed' }));
+      return NextResponse.json(
+        { message: error.detail || 'Search failed' },
+        { status: backendResp.status }
       );
     }
 
-    // Apply semantic boost from description
-    if (description) {
-      results = results.map((d) => ({
-        ...d,
-        relevanceScore: Math.min(100, d.relevanceScore + Math.floor(Math.random() * 10)),
-      }));
-    }
+    const data = await backendResp.json();
+    return NextResponse.json(data);
 
-    // Apply filters
-    if (filters) {
-      const typedFilters = filters as SearchFilters;
-
-      if (typedFilters.format?.length) {
-        results = results.filter((d) => typedFilters.format?.includes(d.format));
-      }
-
-      if (typedFilters.source?.length) {
-        results = results.filter((d) => typedFilters.source?.includes(d.source));
-      }
-
-      if (typedFilters.quality?.length) {
-        results = results.filter((d) => typedFilters.quality?.includes(d.qualityScore));
-      }
-
-      if (typedFilters.size && typedFilters.size !== 'all') {
-        results = results.filter((d) => {
-          const bytes = d.sizeBytes;
-          if (typedFilters.size === 'small') return bytes < 10 * 1024 * 1024;
-          if (typedFilters.size === 'medium') return bytes >= 10 * 1024 * 1024 && bytes < 1024 * 1024 * 1024;
-          if (typedFilters.size === 'large') return bytes >= 1024 * 1024 * 1024;
-          return true;
-        });
-      }
-
-      if (typedFilters.freshness && typedFilters.freshness !== 'all') {
-        const now = new Date();
-        const cutoffs: Record<string, number> = {
-          day: 1,
-          week: 7,
-          month: 30,
-          year: 365,
-        };
-        const days = cutoffs[typedFilters.freshness];
-        if (days) {
-          const cutoffDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-          results = results.filter((d) => new Date(d.lastUpdated) >= cutoffDate);
-        }
-      }
-    }
-
-    // Sort by relevance
-    results.sort((a, b) => b.relevanceScore - a.relevanceScore);
-
-    // Paginate
-    const total = results.length;
-    const totalPages = Math.ceil(total / limit);
-    const startIndex = (page - 1) * limit;
-    const paginatedResults = results.slice(startIndex, startIndex + limit);
-
-    return NextResponse.json({
-      datasets: paginatedResults,
-      total,
-      page,
-      totalPages,
-    });
-  } catch {
+  } catch (error) {
+    console.error('Search proxy error:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
+      { message: 'Failed to connect to backend. Is the FastAPI server running on port 8000?' },
+      { status: 502 }
     );
   }
 }
