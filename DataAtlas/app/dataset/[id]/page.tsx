@@ -38,6 +38,8 @@ import { BiasWarnings } from '@/components/dataset/bias-warnings';
 import { PipelineTracker } from '@/components/dataset/pipeline-tracker';
 import { MissingHeatmap } from '@/components/dataset/missing-heatmap';
 import { TargetFeatureChart } from '@/components/dataset/target-feature-chart';
+import { AugmentationPanel } from '@/components/dataset/augmentation-panel';
+import { VisualizationPanel } from '@/components/dataset/visualization-panel';
 import { useAuth } from '@/lib/auth-context';
 import { DatasetDetails, Dataset, InsightItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -47,6 +49,7 @@ const sourceColors: Record<string, string> = {
   github: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
   huggingface: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
   government: 'bg-green-500/10 text-green-500 border-green-500/20',
+  upload: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
 };
 
 const qualityColors: Record<string, string> = {
@@ -74,6 +77,7 @@ export default function DatasetDetailsPage({ params }: { params: Promise<{ id: s
   const [selectedInsight, setSelectedInsight] = useState<InsightItem | null>(null);
   const [hasPreprocessed, setHasPreprocessed] = useState(false);
   const [showAllInsights, setShowAllInsights] = useState(false);
+  const [showDetailedEDA, setShowDetailedEDA] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -331,7 +335,13 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
     : 'Unknown';
 
   const insights = dataset?.insights || [];
-  const visibleInsights = showAllInsights ? insights : insights.slice(0, 6);
+  const visibleInsights = showAllInsights ? insights : insights.slice(0, 4);
+
+  // Detect if dataset is small or imbalanced (for augmentation panel)
+  const isSmallDataset = (dataset?.metrics?.rows || 0) < 1000;
+  const isImbalanced = (dataset?.biasWarnings || []).some(
+    (w) => w.type === 'class_imbalance'
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -461,21 +471,26 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
               Generate Starter Code
             </Button>
           )}
-          <Button variant="outline" asChild className="gap-2 bg-transparent">
-            <a
-              href={
-                dataset?.downloadUrl ||
-                (basicInfo?.downloadUrl?.startsWith('http')
-                  ? basicInfo.downloadUrl
-                  : `https://www.kaggle.com/datasets/${basicInfo?.downloadUrl || ''}`)
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="h-4 w-4" />
-              View on Kaggle
-            </a>
-          </Button>
+          {(displayData.source !== 'upload') && (
+            <Button variant="outline" asChild className="gap-2 bg-transparent">
+              <a
+                href={
+                  dataset?.downloadUrl?.startsWith('http')
+                    ? dataset.downloadUrl
+                    : basicInfo?.downloadUrl?.startsWith('http')
+                    ? basicInfo.downloadUrl
+                    : `https://www.kaggle.com/datasets/${basicInfo?.downloadUrl || dataset?.downloadUrl || ''}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-4 w-4" />
+                {displayData.source === 'github' ? 'View on GitHub'
+                  : displayData.source === 'huggingface' ? 'View on HuggingFace'
+                  : 'View on Kaggle'}
+              </a>
+            </Button>
+          )}
           {!dataset && basicInfo && (
             <Button onClick={() => triggerAnalysis(basicInfo)} className="gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -626,14 +641,6 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
               </section>
             )}
 
-            {/* No-Code Preprocessing (Feature 4) */}
-            <section className="mb-8">
-              <PreprocessingPanel
-                datasetId={dataset.id}
-                metrics={dataset.metrics}
-                onPreprocessComplete={() => setHasPreprocessed(true)}
-              />
-            </section>
 
             {/* What To Do Next (Feature 5) */}
             {dataset.nextSteps && dataset.nextSteps.length > 0 && (
@@ -641,6 +648,74 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
                 <NextStepsPanel steps={dataset.nextSteps} />
               </section>
             )}
+
+            {/* ── Action Section: Quick Actions ── */}
+            <section className="mb-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    🎯 What do you want to do next?
+                  </CardTitle>
+                  <CardDescription>Choose an action to continue your analysis workflow</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <button
+                      className="flex items-center gap-3 rounded-lg border border-border p-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
+                      onClick={() => document.getElementById('data-preview')?.scrollIntoView({ behavior: 'smooth' })}
+                    >
+                      <span className="text-xl">🔍</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Explore Data</p>
+                        <p className="text-xs text-muted-foreground">View sample data and column info</p>
+                      </div>
+                    </button>
+                    <button
+                      className="flex items-center gap-3 rounded-lg border border-border p-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
+                      onClick={() => document.getElementById('preprocessing')?.scrollIntoView({ behavior: 'smooth' })}
+                    >
+                      <span className="text-xl">🧹</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Clean Dataset</p>
+                        <p className="text-xs text-muted-foreground">Handle missing values, duplicates & more</p>
+                      </div>
+                    </button>
+                    <button
+                      className="flex items-center gap-3 rounded-lg border border-border p-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
+                      onClick={() => document.getElementById('visualization')?.scrollIntoView({ behavior: 'smooth' })}
+                    >
+                      <span className="text-xl">📊</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Visualize</p>
+                        <p className="text-xs text-muted-foreground">Create custom charts on demand</p>
+                      </div>
+                    </button>
+                    {(isSmallDataset || isImbalanced) && (
+                      <button
+                        className="flex items-center gap-3 rounded-lg border border-border p-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
+                        onClick={() => document.getElementById('augmentation')?.scrollIntoView({ behavior: 'smooth' })}
+                      >
+                        <span className="text-xl">📈</span>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">Augment Data</p>
+                          <p className="text-xs text-muted-foreground">Generate synthetic samples</p>
+                        </div>
+                      </button>
+                    )}
+                    <button
+                      className="flex items-center gap-3 rounded-lg border border-border p-3 text-left transition-all hover:border-primary/40 hover:bg-primary/5"
+                      onClick={handleGenerateCode}
+                    >
+                      <span className="text-xl">💻</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Get Starter Code</p>
+                        <p className="text-xs text-muted-foreground">Copy Python code to clipboard</p>
+                      </div>
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
 
             {/* Column Info */}
             <section className="mb-8">
@@ -677,37 +752,199 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
 
             {/* Data Preview */}
             {dataset.metrics.sampleData.length > 0 && (
-              <section className="mb-8">
+              <section id="data-preview" className="mb-8">
                 <DataPreviewTable data={dataset.metrics.sampleData} />
               </section>
             )}
 
-            {/* Target vs Feature Correlations (Feature 9) */}
-            {dataset.correlations.length > 0 && (
-              <section className="mb-8">
-                <TargetFeatureChart
-                  correlations={dataset.correlations}
+            {/* On-Demand Visualization (Phase 6) */}
+            <section id="visualization" className="mb-8">
+              <VisualizationPanel
+                datasetId={dataset.id}
+                columnTypes={dataset.metrics.columnTypes}
+              />
+            </section>
+
+            {/* Augmentation Panel (Phase 5) */}
+            {(isSmallDataset || isImbalanced) && (
+              <section id="augmentation" className="mb-8">
+                <AugmentationPanel
+                  datasetId={dataset.id}
                   targetColumn={dataset.mlRecommendation?.targetColumn}
+                  taskType={dataset.mlRecommendation?.task || 'classification'}
+                  isSmallDataset={isSmallDataset}
+                  isImbalanced={isImbalanced}
                 />
               </section>
             )}
 
-            {/* Auto EDA Section */}
+            {/* No-Code Preprocessing (Feature 4) */}
+            <section id="preprocessing" className="mb-8">
+              <PreprocessingPanel
+                datasetId={dataset.id}
+                metrics={dataset.metrics}
+                onPreprocessComplete={() => setHasPreprocessed(true)}
+              />
+            </section>
+
+            {/* Detailed EDA — Collapsible */}
             {(dataset.distributions.length > 0 || dataset.correlations.length > 0) && (
               <section className="mb-8">
-                <h2 className="mb-4 text-xl font-semibold text-foreground">Automated EDA</h2>
-                <div className="grid gap-6 lg:grid-cols-2">
-                  {dataset.distributions.length > 0 && (
-                    <DistributionChart distributions={dataset.distributions} />
-                  )}
-                  {dataset.correlations.length > 0 && (
-                    <CorrelationChart correlations={dataset.correlations} />
-                  )}
-                </div>
+                <Button
+                  variant="ghost"
+                  className="mb-4 w-full justify-between text-xl font-semibold text-foreground"
+                  onClick={() => setShowDetailedEDA(!showDetailedEDA)}
+                >
+                  <span>Detailed EDA</span>
+                  {showDetailedEDA ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                </Button>
+
+                {showDetailedEDA && (
+                  <div className="space-y-8 animate-in slide-in-from-top-2">
+                    {/* Target vs Feature Correlations */}
+                    {dataset.correlations.length > 0 && (
+                      <TargetFeatureChart
+                        correlations={dataset.correlations}
+                        targetColumn={dataset.mlRecommendation?.targetColumn}
+                      />
+                    )}
+
+                    {/* Distribution + Correlation Heatmap */}
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      {dataset.distributions.length > 0 && (
+                        <DistributionChart distributions={dataset.distributions} />
+                      )}
+                      {dataset.correlations.length > 0 && (
+                        <CorrelationChart correlations={dataset.correlations} />
+                      )}
+                    </div>
+
+                    {/* Missing Value Heatmap */}
+                    {dataset.metrics.missingPercent > 0 && (
+                      <MissingHeatmap
+                        columnTypes={dataset.metrics.columnTypes}
+                        totalRows={dataset.metrics.rows}
+                      />
+                    )}
+
+                    {/* Column Statistics Summary */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          📋 Column Statistics
+                        </CardTitle>
+                        <CardDescription>
+                          Detailed statistics for each column in the dataset
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-border">
+                                <th className="text-left py-2 px-2 font-medium text-muted-foreground">Column</th>
+                                <th className="text-left py-2 px-2 font-medium text-muted-foreground">Type</th>
+                                <th className="text-right py-2 px-2 font-medium text-muted-foreground">Unique</th>
+                                <th className="text-right py-2 px-2 font-medium text-muted-foreground">Nulls</th>
+                                <th className="text-right py-2 px-2 font-medium text-muted-foreground">Null %</th>
+                                <th className="text-left py-2 px-2 font-medium text-muted-foreground">Completeness</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {dataset.metrics.columnTypes.map((col) => {
+                                const nullPct = dataset.metrics.rows > 0
+                                  ? (col.nullCount / dataset.metrics.rows * 100)
+                                  : 0;
+                                const completeness = 100 - nullPct;
+                                return (
+                                  <tr key={col.name} className="border-b border-border/50 hover:bg-muted/30">
+                                    <td className="py-1.5 px-2 font-mono text-foreground">{col.name}</td>
+                                    <td className="py-1.5 px-2">
+                                      <Badge variant="secondary" className="text-[10px] capitalize">
+                                        {col.type}
+                                      </Badge>
+                                    </td>
+                                    <td className="py-1.5 px-2 text-right text-muted-foreground">
+                                      {col.uniqueCount.toLocaleString()}
+                                    </td>
+                                    <td className="py-1.5 px-2 text-right">
+                                      <span className={col.nullCount > 0 ? 'text-warning' : 'text-muted-foreground'}>
+                                        {col.nullCount.toLocaleString()}
+                                      </span>
+                                    </td>
+                                    <td className="py-1.5 px-2 text-right">
+                                      <span className={nullPct > 20 ? 'text-destructive' : nullPct > 5 ? 'text-warning' : 'text-muted-foreground'}>
+                                        {nullPct.toFixed(1)}%
+                                      </span>
+                                    </td>
+                                    <td className="py-1.5 px-2 w-32">
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                          <div
+                                            className={`h-full rounded-full transition-all ${
+                                              completeness >= 95 ? 'bg-green-500'
+                                              : completeness >= 80 ? 'bg-yellow-500'
+                                              : 'bg-red-500'
+                                            }`}
+                                            style={{ width: `${completeness}%` }}
+                                          />
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground w-8 text-right">{completeness.toFixed(0)}%</span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Outlier Detection Overview */}
+                    {dataset.biasWarnings && dataset.biasWarnings.some((w) => w.type === 'outlier_heavy') && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            ⚡ Outlier Detection
+                          </CardTitle>
+                          <CardDescription>
+                            Columns flagged with significant outlier presence
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {dataset.biasWarnings
+                              .filter((w) => w.type === 'outlier_heavy')
+                              .map((warning, i) => (
+                                <div
+                                  key={i}
+                                  className="flex items-start gap-3 rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3"
+                                >
+                                  <span className="text-lg shrink-0">⚠️</span>
+                                  <div>
+                                    <p className="text-sm font-medium text-foreground">{warning.title}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{warning.description}</p>
+                                    {warning.affected_columns.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-2">
+                                        {warning.affected_columns.map((col) => (
+                                          <Badge key={col} variant="secondary" className="text-[10px] font-mono">{col}</Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )}
               </section>
             )}
 
-            {/* ML Recommendation (Feature 6 — with use cases) */}
+            {/* ML Recommendation */}
             {dataset.mlRecommendation && (
               <section className="mb-8">
                 <MLRecommendation recommendation={dataset.mlRecommendation} />

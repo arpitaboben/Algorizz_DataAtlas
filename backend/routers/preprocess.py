@@ -62,7 +62,10 @@ async def preprocess_dataset(request: PreprocessRequest):
         return result
     except Exception as e:
         logger.error(f"Preprocessing failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Preprocessing failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Preprocessing encountered an error. Please try different settings or re-analyze the dataset.",
+        )
 
 
 @router.get("/preprocess/download/{filename}")

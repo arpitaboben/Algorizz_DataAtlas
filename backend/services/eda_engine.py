@@ -194,14 +194,7 @@ def _read_csv_safe(csv_path: str) -> tuple[pd.DataFrame, list[str]]:
 def run_eda(csv_path: str) -> dict:
     """
     Run comprehensive EDA on a CSV file.
-    Returns a dict with: metrics, correlations, distributions, warnings.
-
-    Enhanced analysis includes:
-      - Extended column profiling with skewness and outlier stats
-      - Larger sample data (first 20 rows)
-      - More correlation pairs (top 20)
-      - More distribution columns (top 8) with 10 bins each
-      - Categorical distribution analysis
+    Delegates to run_eda_from_dataframe after reading the file.
     """
     logger.info(f"Running EDA on: {csv_path}")
 
@@ -214,12 +207,31 @@ def run_eda(csv_path: str) -> dict:
         logger.error(f"Unexpected error reading CSV: {e}")
         return {"error": f"Failed to read CSV: {e}"}
 
+    return run_eda_from_dataframe(df, warnings)
+
+
+def run_eda_from_dataframe(df: pd.DataFrame, initial_warnings: list[str] | None = None) -> dict:
+    """
+    Run comprehensive EDA on a DataFrame.
+    Can be called directly for uploaded files (CSV/Excel) that are already parsed.
+
+    Returns a dict with: metrics, correlations, distributions, warnings.
+
+    Enhanced analysis includes:
+      - Extended column profiling with skewness and outlier stats
+      - Larger sample data (first 20 rows)
+      - More correlation pairs (top 20)
+      - More distribution columns (top 8) with 10 bins each
+      - Categorical distribution analysis
+    """
+    warnings = list(initial_warnings or [])
+
     # Drop fully empty columns/rows that can appear after skipping bad lines
     df = df.dropna(how="all", axis=1)
     df = df.dropna(how="all", axis=0)
 
     if df.empty:
-        return {"error": "The CSV file has no usable data after cleaning."}
+        return {"error": "The dataset has no usable data after cleaning."}
 
     rows, cols = df.shape
 

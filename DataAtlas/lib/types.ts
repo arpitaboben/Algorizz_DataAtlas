@@ -21,7 +21,7 @@ export interface Dataset {
   id: string;
   title: string;
   description: string;
-  source: 'kaggle' | 'github' | 'huggingface' | 'government';
+  source: 'kaggle' | 'github' | 'huggingface' | 'government' | 'upload';
   format: 'csv' | 'json' | 'parquet' | 'excel';
   size: string;
   sizeBytes: number;

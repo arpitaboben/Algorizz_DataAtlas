@@ -104,8 +104,8 @@ class Dataset(BaseModel):
     id: str
     title: str
     description: str = ""
-    source: str  # 'kaggle' | 'github' | 'huggingface'
-    format: str = "csv"  # 'csv' | 'json' | 'parquet' | 'excel'
+    source: str  # 'kaggle' | 'github' | 'huggingface' | 'upload'
+    format: str = "csv"  # 'csv' | 'json' | 'parquet' | 'excel' | 'xlsx' | 'xls'
     size: str = "Unknown"
     sizeBytes: int = 0
     relevanceScore: float = 0.0

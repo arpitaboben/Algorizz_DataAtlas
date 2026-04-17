@@ -1,10 +1,15 @@
 """
 Dataset API Router.
-- POST /api/analyze — downloads CSV via Kaggle SDK, runs EDA + scoring + insights + ML recommendation
+- POST /api/analyze — downloads CSV (Kaggle/HuggingFace/GitHub), runs EDA + scoring + insights + ML
 - GET  /api/dataset/{dataset_id} — returns cached analysis results
 """
 from __future__ import annotations
 import logging
+import re
+from pathlib import Path
+from typing import Optional
+
+import httpx
 from fastapi import APIRouter, HTTPException
 from models.schemas import AnalyzeRequest, DatasetDetails, DatasetMetrics
 from services.eda_engine import download_kaggle_dataset, run_eda
@@ -13,12 +18,95 @@ from services.insight_generator import generate_insights
 from services.ml_recommender import recommend_ml
 from services.bias_detector import detect_bias
 from services.next_steps import generate_next_steps
+from config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # In-memory cache for analyzed datasets (MVP — replace with DB/Redis in production)
 _analysis_cache: dict[str, DatasetDetails] = {}
+
+
+async def _download_from_url(url: str, dataset_id: str, source: str) -> Optional[str]:
+    """
+    Download a CSV file from a URL (HuggingFace, GitHub, or any direct link).
+    Returns the local path to the downloaded CSV, or None if download fails.
+    """
+    download_dir = Path(settings.DOWNLOAD_DIR) / dataset_id
+    download_dir.mkdir(parents=True, exist_ok=True)
+
+    # For HuggingFace dataset pages, try to construct a direct CSV download URL
+    if source == "huggingface" and "huggingface.co/datasets/" in url:
+        # Extract dataset name: https://huggingface.co/datasets/username/dataset-name
+        match = re.search(r"huggingface\.co/datasets/([^/]+/[^/]+)", url)
+        if match:
+            hf_name = match.group(1)
+            # Try HuggingFace datasets API for CSV files
+            try_urls = [
+                f"https://huggingface.co/datasets/{hf_name}/resolve/main/data/train.csv",
+                f"https://huggingface.co/datasets/{hf_name}/resolve/main/train.csv",
+                f"https://huggingface.co/datasets/{hf_name}/resolve/main/data.csv",
+                f"https://huggingface.co/datasets/{hf_name}/resolve/main/dataset.csv",
+            ]
+            for try_url in try_urls:
+                result = await _try_download(try_url, download_dir, dataset_id)
+                if result:
+                    return result
+
+    # For GitHub repos, try to find CSV files
+    if source == "github" and "github.com" in url:
+        match = re.search(r"github\.com/([^/]+/[^/]+)", url)
+        if match:
+            repo_name = match.group(1)
+            # Use GitHub API to list files in the repo root
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    headers = {"Accept": "application/vnd.github.v3+json"}
+                    resp = await client.get(
+                        f"https://api.github.com/repos/{repo_name}/contents",
+                        headers=headers,
+                    )
+                    if resp.status_code == 200:
+                        files = resp.json()
+                        csv_files = [f for f in files if isinstance(f, dict) and f.get("name", "").endswith(".csv")]
+                        for csv_file in csv_files[:3]:  # Try first 3 CSV files
+                            raw_url = csv_file.get("download_url", "")
+                            if raw_url:
+                                result = await _try_download(raw_url, download_dir, dataset_id)
+                                if result:
+                                    return result
+            except Exception as e:
+                logger.warning(f"GitHub contents API failed: {e}")
+
+    # Direct URL download (for any http CSV link)
+    if url.startswith("http"):
+        result = await _try_download(url, download_dir, dataset_id)
+        if result:
+            return result
+
+    return None
+
+
+async def _try_download(url: str, download_dir: Path, dataset_id: str) -> Optional[str]:
+    """Try to download a single file from a URL. Returns local path or None."""
+    try:
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                content_type = resp.headers.get("content-type", "")
+                # Accept CSV-like content types
+                if "csv" in content_type or "text" in content_type or "octet-stream" in content_type or url.endswith(".csv"):
+                    # Extract filename from URL
+                    filename = url.split("/")[-1].split("?")[0]
+                    if not filename.endswith(".csv"):
+                        filename = f"{dataset_id}.csv"
+                    save_path = download_dir / filename
+                    save_path.write_bytes(resp.content)
+                    logger.info(f"Downloaded {len(resp.content)} bytes from {url} to {save_path}")
+                    return str(save_path)
+    except Exception as e:
+        logger.warning(f"Download failed for {url}: {e}")
+    return None
 
 
 @router.post("/analyze", response_model=DatasetDetails)
@@ -40,31 +128,48 @@ async def analyze_dataset(request: AnalyzeRequest):
         logger.info(f"Returning cached analysis for {dataset_id}")
         return _analysis_cache[dataset_id]
 
-    # 1. Download CSV via Kaggle SDK
-    # download_url contains the Kaggle ref (e.g. "username/dataset-slug")
-    kaggle_ref = request.download_url
-    logger.info(f"Starting analysis for dataset: {dataset_id} (ref: {kaggle_ref})")
+    # 1. Download CSV — Multi-source support
+    download_url = request.download_url
+    source = request.source or "kaggle"
+    logger.info(f"Starting analysis for dataset: {dataset_id} (source: {source}, ref: {download_url})")
 
-    csv_path = download_kaggle_dataset(
-        kaggle_ref=kaggle_ref,
-        dataset_id=dataset_id,
-    )
+    csv_path = None
+
+    if source == "kaggle":
+        # Kaggle SDK download
+        csv_path = download_kaggle_dataset(
+            kaggle_ref=download_url,
+            dataset_id=dataset_id,
+        )
+    elif source in ("huggingface", "github") or download_url.startswith("http"):
+        # Try direct HTTP download for HuggingFace/GitHub/any URL
+        csv_path = await _download_from_url(download_url, dataset_id, source)
 
     if csv_path is None:
+        source_msg = {
+            "kaggle": "Kaggle API credentials are set correctly in .env",
+            "huggingface": "the HuggingFace dataset contains downloadable CSV files",
+            "github": "the GitHub repository contains CSV files",
+        }.get(source, "the dataset URL is accessible")
+
         raise HTTPException(
             status_code=400,
             detail=(
-                "Could not download this Kaggle dataset. "
-                "Please verify: (1) Your Kaggle API credentials are set correctly in .env, "
+                f"Could not download this dataset from {source}. "
+                f"Please verify: (1) {source_msg}, "
                 "(2) The dataset exists and is publicly accessible, "
-                "(3) The dataset contains CSV files."
+                "(3) The dataset contains CSV files. "
+                "Alternatively, download the file manually and use the Upload feature."
             ),
         )
 
     # 2. Run EDA
     eda_result = run_eda(csv_path)
     if "error" in eda_result:
-        raise HTTPException(status_code=500, detail=f"EDA failed: {eda_result['error']}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not analyze this dataset: {eda_result['error']}",
+        )
 
     metrics: DatasetMetrics = eda_result["metrics"]
     correlations = eda_result["correlations"]
@@ -120,8 +225,8 @@ async def analyze_dataset(request: AnalyzeRequest):
         biasWarnings=bias_warnings,
         nextSteps=next_steps,
         warnings=eda_warnings,
-        # Store the Kaggle URL for the "View Source" button
-        downloadUrl=f"https://www.kaggle.com/datasets/{kaggle_ref}",
+        # Store the source URL for the "View Source" button
+        downloadUrl=download_url if download_url.startswith("http") else f"https://www.kaggle.com/datasets/{download_url}",
     )
 
     # Cache the result

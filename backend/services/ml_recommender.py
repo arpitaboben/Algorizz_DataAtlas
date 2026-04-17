@@ -26,6 +26,7 @@ _USE_CASE_PATTERNS = {
         "security": ["intrusion detection", "malware classification", "anomaly detection"],
         "marketing": ["conversion prediction", "campaign targeting", "A/B test analysis"],
         "general": ["binary classification", "multi-class prediction", "label assignment"],
+        "sports": ["win/loss prediction", "player performance classification", "injury risk assessment", "Auction Price Classification"],
     },
     "regression": {
         "price": ["price prediction", "real estate valuation", "product pricing"],
@@ -34,11 +35,13 @@ _USE_CASE_PATTERNS = {
         "science": ["measurement prediction", "experiment outcome estimation"],
         "energy": ["energy consumption prediction", "load forecasting"],
         "general": ["continuous value prediction", "trend estimation", "quantity forecasting"],
+        "sports": ["score prediction", "player performance regression", "auction price estimation"],
     },
     "clustering": {
         "customer": ["customer segmentation", "market basket analysis", "persona discovery"],
         "science": ["pattern discovery", "taxonomy generation", "anomaly detection"],
         "general": ["data grouping", "similarity analysis", "unsupervised pattern mining"],
+        "Sports" : ["player clustering", "team segmentation", "performance grouping"],
     },
     "time-series": {
         "finance": ["stock forecasting", "revenue projection", "volatility modeling"],
@@ -66,6 +69,7 @@ _DOMAIN_PATTERNS = {
     "iot": ["sensor", "temperature", "humidity", "pressure", "device", "reading"],
     "science": ["measurement", "experiment", "sample", "observation", "species", "specimen"],
     "image": ["pixel", "image", "width", "height", "channel", "resolution"],
+    "sports": ["runs", "wickets", "overs", "runs_per_over", "strike_rate", "economy_rate", "auction_price", "player_name", "team_name", "match_date"],
 }
 
 

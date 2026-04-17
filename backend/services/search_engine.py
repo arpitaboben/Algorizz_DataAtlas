@@ -17,6 +17,7 @@ from typing import Optional
 
 from services.query_processor import (
     normalize_query,
+    sanitize_query,
     extract_keywords,
     expand_query,
     detect_intent,
@@ -90,20 +91,22 @@ async def search_datasets(
     """
     # ─── Layer 1: Query Processing ──────────────────────────────
     normalized = normalize_query(query)
+    sanitized = sanitize_query(query)  # Strip domain noise ("dataset", "data", etc.)
     keywords = extract_keywords(query)
     intent = detect_intent(query)
-    expanded = expand_query(query, keywords)
+    expanded = expand_query(sanitized, keywords)  # Use sanitized for expansion
     structured = build_structured_queries(normalized, keywords)
 
-    # Build the text to embed: original query + description + expanded terms
-    embed_text = query
+    # Build the text to embed: sanitized query + description + expanded terms
+    # Using sanitized query gives better semantic embeddings by removing noise
+    embed_text = sanitized if sanitized else query
     if description:
-        embed_text = f"{query}. {description}"
-    if expanded != query:
+        embed_text = f"{embed_text}. {description}"
+    if expanded != sanitized:
         embed_text = f"{embed_text}. {expanded}"
 
-    logger.info(f"Search: query='{query}' keywords={keywords} intent={intent}")
-    if expanded != query:
+    logger.info(f"Search: query='{query}' sanitized='{sanitized}' keywords={keywords} intent={intent}")
+    if expanded != sanitized:
         logger.info(f"  Expanded query: '{expanded}'")
 
     try:
@@ -191,6 +194,22 @@ async def search_datasets(
             + metadata_score * 0.15
             + intent_score * 0.10
         )
+
+        # ── Minimum relevance floor ──
+        # These datasets were already returned by source-specific search APIs,
+        # so they have SOME relevance. Showing 0% is misleading.
+
+        # Floor 1: Every result gets at least 12% (source API thought it was relevant)
+        if composite < 12:
+            composite = 12.0
+
+        # Floor 2: If any keyword matches title/tags/desc, at least 20%
+        if keyword_score > 0 and composite < 20:
+            composite = 20.0
+
+        # Floor 3: If the original query appears in the title, at least 35%
+        if query.lower().strip() in ds.title.lower() and composite < 35:
+            composite = 35.0
 
         ds.relevanceScore = round(max(0, min(100, composite)), 1)
 

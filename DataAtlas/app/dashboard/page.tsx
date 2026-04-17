@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Database, TrendingUp, AlertCircle, GitCompare } from 'lucide-react';
+import { Loader2, Database, TrendingUp, AlertCircle, GitCompare, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { SearchForm } from '@/components/dashboard/search-form';
@@ -27,6 +27,8 @@ export default function DashboardPage() {
   const [restoredQuery, setRestoredQuery] = useState('');
   const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set());
   const [compareMode, setCompareMode] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -130,6 +132,42 @@ export default function DashboardPage() {
     }
   };
 
+  const handleUpload = useCallback(async (file: File) => {
+    setIsUploading(true);
+    setSearchError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(err.message || 'Upload failed');
+      }
+
+      const data = await response.json();
+      // Store dataset info and navigate to analysis page
+      sessionStorage.setItem(`dataset-${data.id}`, JSON.stringify(data));
+      router.push(`/dataset/${data.id}`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setSearchError(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [router]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleUpload(file);
+    e.target.value = ''; // Reset so same file can be re-selected
+  };
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -151,6 +189,31 @@ export default function DashboardPage() {
         </div>
 
         <SearchForm onSearch={handleSearch} isLoading={isSearching} initialQuery={restoredQuery} />
+
+        {/* Upload Section */}
+        <div className="mt-4 flex items-center gap-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="gap-2"
+          >
+            {isUploading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Analyzing...</>
+            ) : (
+              <><Upload className="h-4 w-4" /> Upload Dataset</>
+            )}
+          </Button>
+          <span className="text-xs text-muted-foreground">CSV, Excel • Max 200 MB</span>
+        </div>
 
         <div className="mt-8">
           {isSearching ? (

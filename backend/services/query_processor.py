@@ -28,7 +28,16 @@ _STOP_WORDS = {
     "i", "me", "my", "we", "our", "you", "your", "he", "him", "his",
     "she", "her", "it", "its", "they", "them", "their", "what", "which",
     "who", "whom", "this", "that", "these", "those", "am", "dataset",
-    "data", "find", "search", "looking", "want", "get", "show", "give",
+    "datasets", "data", "set", "sets",
+    "find", "search", "looking", "want", "get", "show", "give",
+    "need", "using", "use", "best", "good", "great", "list",
+}
+
+# Domain-specific noise words — stripped from queries BEFORE keyword extraction
+# These are words that appear in almost every dataset query and add no search value
+_DOMAIN_NOISE = {
+    "dataset", "datasets", "data", "set", "sets",
+    "csv", "file", "files", "download", "table",
 }
 
 # Domain synonym expansion map — query expansion for better recall
@@ -101,12 +110,35 @@ def normalize_query(query: str) -> str:
     return text
 
 
-def extract_keywords(query: str) -> list[str]:
-    """Extract meaningful keywords by removing stop words."""
+def sanitize_query(query: str) -> str:
+    """
+    Remove domain-specific noise words from a query to extract the
+    meaningful topic. E.g. "sales dataset csv" → "sales".
+    Used before keyword extraction and embedding generation.
+    """
     normalized = normalize_query(query)
     words = normalized.split()
-    keywords = [w for w in words if w not in _STOP_WORDS and len(w) > 1]
-    return keywords if keywords else words[:5]  # fallback to first 5 words
+    cleaned = [w for w in words if w not in _DOMAIN_NOISE and w not in _STOP_WORDS and len(w) > 1]
+    # If everything was stripped, fall back to just removing domain noise
+    if not cleaned:
+        cleaned = [w for w in words if w not in _DOMAIN_NOISE and len(w) > 1]
+    # If STILL empty, return the original normalized query
+    return " ".join(cleaned) if cleaned else normalized
+
+
+def extract_keywords(query: str) -> list[str]:
+    """Extract meaningful keywords by removing stop words and domain noise."""
+    normalized = normalize_query(query)
+    words = normalized.split()
+    # First pass: remove all stop words + domain noise
+    keywords = [w for w in words if w not in _STOP_WORDS and w not in _DOMAIN_NOISE and len(w) > 1]
+    # Second pass: if nothing left, try keeping domain-noise but removing stop words
+    if not keywords:
+        keywords = [w for w in words if w not in _STOP_WORDS and len(w) > 1]
+    # Final fallback: use the first meaningful words
+    if not keywords:
+        keywords = [w for w in words if len(w) > 1][:5]
+    return keywords
 
 
 def expand_query(query: str, keywords: list[str]) -> str:

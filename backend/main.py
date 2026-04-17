@@ -81,12 +81,18 @@ from routers.search import router as search_router
 from routers.datasets import router as datasets_router
 from routers.compare import router as compare_router
 from routers.preprocess import router as preprocess_router
+from routers.upload import router as upload_router
+from routers.augment import router as augment_router
+from routers.visualize import router as visualize_router
 
 app.include_router(health_router, prefix="/api", tags=["Health"])
 app.include_router(search_router, prefix="/api", tags=["Search"])
 app.include_router(datasets_router, prefix="/api", tags=["Datasets"])
 app.include_router(compare_router, prefix="/api", tags=["Comparison"])
 app.include_router(preprocess_router, prefix="/api", tags=["Preprocessing"])
+app.include_router(upload_router, prefix="/api", tags=["Upload"])
+app.include_router(augment_router, prefix="/api", tags=["Augmentation"])
+app.include_router(visualize_router, prefix="/api", tags=["Visualization"])
 
 
 @app.get("/")

@@ -46,4 +46,7 @@ async def compare_datasets_endpoint(request: CompareRequest):
         return result
     except Exception as e:
         logger.error(f"Comparison failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Comparison failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Comparison encountered an error. Please ensure both datasets have been analyzed."
+        )

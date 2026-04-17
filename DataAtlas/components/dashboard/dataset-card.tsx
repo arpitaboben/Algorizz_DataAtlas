@@ -20,6 +20,15 @@ const sourceColors: Record<string, string> = {
   github: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
   huggingface: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
   government: 'bg-green-500/10 text-green-500 border-green-500/20',
+  upload: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+};
+
+const sourceIcons: Record<string, string> = {
+  kaggle: '🏷️',
+  github: '🐙',
+  huggingface: '🤗',
+  government: '🏛️',
+  upload: '📁',
 };
 
 const qualityColors: Record<string, string> = {
@@ -47,6 +56,12 @@ export function DatasetCard({ dataset, isSelected = false, onSelect, showCheckbo
     sessionStorage.setItem(`dataset-${dataset.id}`, JSON.stringify(dataset));
   };
 
+  const buttonLabel = dataset.source === 'kaggle'
+    ? 'View & Analyze'
+    : dataset.source === 'upload'
+    ? 'View Analysis'
+    : 'View & Analyze';
+
   return (
     <div className={cn(
       'group rounded-xl border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-lg',
@@ -63,7 +78,7 @@ export function DatasetCard({ dataset, isSelected = false, onSelect, showCheckbo
             />
           )}
           <Badge variant="outline" className={cn('capitalize', sourceColors[dataset.source])}>
-            {dataset.source}
+            {sourceIcons[dataset.source] || ''} {dataset.source}
           </Badge>
           <Badge variant="outline" className={cn('capitalize', qualityColors[dataset.qualityScore])}>
             {dataset.qualityScore} quality
@@ -117,10 +132,11 @@ export function DatasetCard({ dataset, isSelected = false, onSelect, showCheckbo
 
       <Link href={`/dataset/${dataset.id}`} onClick={handleClick}>
         <Button className="w-full gap-2" size="sm">
-          View & Analyze Dataset
+          {buttonLabel}
           <ExternalLink className="h-3.5 w-3.5" />
         </Button>
       </Link>
     </div>
   );
 }
+
