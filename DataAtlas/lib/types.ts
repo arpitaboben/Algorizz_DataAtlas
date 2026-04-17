@@ -51,14 +51,61 @@ export interface ColumnType {
   uniqueCount: number;
 }
 
+// Enhanced Insight (Feature 2)
+export interface InsightItem {
+  title: string;
+  description: string;
+  why_it_matters: string;
+  suggested_action: string;
+  severity: 'info' | 'warning' | 'critical';
+  category: 'missing' | 'duplicates' | 'correlation' | 'distribution' | 'size' | 'column' | 'general';
+}
+
+// Score Breakdown (Feature 3)
+export interface ScoreComponent {
+  name: string;
+  score: number;
+  maxScore: number;
+  label: string;
+  description: string;
+}
+
+export interface ScoreBreakdown {
+  overall: number;
+  components: ScoreComponent[];
+}
+
+// Bias Detection (Feature 7)
+export interface BiasWarning {
+  type: 'class_imbalance' | 'feature_skewness' | 'feature_dominance' | 'low_variance' | 'outlier_heavy' | 'proxy_variable';
+  severity: 'low' | 'medium' | 'high';
+  title: string;
+  description: string;
+  affected_columns: string[];
+  suggestion: string;
+}
+
+// Next Steps (Feature 5)
+export interface NextStep {
+  order: number;
+  title: string;
+  description: string;
+  action_type: 'preprocess' | 'analyze' | 'model' | 'info';
+  action_key?: string;
+  is_critical: boolean;
+}
+
 export interface DatasetDetails extends Dataset {
   metrics: DatasetMetrics;
   correlations: Correlation[];
   distributions: Distribution[];
   mlRecommendation: MLRecommendation;
-  insights?: string[];
+  insights?: InsightItem[];
   score?: number;
   scoreExplanation?: string;
+  scoreBreakdown?: ScoreBreakdown;
+  biasWarnings?: BiasWarning[];
+  nextSteps?: NextStep[];
   warnings?: string[];
 }
 
@@ -79,6 +126,7 @@ export interface MLRecommendation {
   suggestedModels: string[];
   targetColumn?: string;
   reasoning: string;
+  useCases?: string[];
 }
 
 // Search Types
@@ -103,6 +151,58 @@ export interface SearchResponse {
   total: number;
   page: number;
   totalPages: number;
+}
+
+// Comparison Types (Feature 1)
+export interface DatasetSummary {
+  id: string;
+  title: string;
+  source: string;
+  rows: number;
+  columns: number;
+  missingPercent: number;
+  duplicatePercent: number;
+  qualityScore: number;
+  qualityLabel: string;
+  mlTask: string;
+  targetColumn?: string;
+  numericColumnCount: number;
+  categoricalColumnCount: number;
+  avgNullsPerColumn: number;
+  correlationStrength: string;
+  sizeBytes: number;
+}
+
+export interface ComparisonResult {
+  datasets: DatasetSummary[];
+  bestDatasetId: string;
+  explanation: string;
+  metricComparisons: {
+    metric: string;
+    dataset1_value: string;
+    dataset2_value: string;
+    winner: string;
+    explanation: string;
+  }[];
+}
+
+// Preprocessing Types (Feature 4)
+export interface PreprocessStep {
+  action: string;
+  params?: Record<string, unknown>;
+}
+
+export interface PreprocessResponse {
+  dataset_id: string;
+  success: boolean;
+  original_metrics: DatasetMetrics;
+  updated_metrics: DatasetMetrics;
+  applied_steps: string[];
+  rows_removed: number;
+  columns_removed: number;
+  columns_added: number;
+  download_filename: string;
+  summary: string;
 }
 
 // Auth Types

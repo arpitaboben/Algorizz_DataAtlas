@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MLRecommendation as MLRecommendationType } from '@/lib/types';
-import { Brain, Target, Sparkles } from 'lucide-react';
+import { Brain, Target, Sparkles, Lightbulb } from 'lucide-react';
 
 interface MLRecommendationProps {
   recommendation: MLRecommendationType;
@@ -73,6 +73,27 @@ export function MLRecommendation({ recommendation }: MLRecommendationProps) {
             ))}
           </div>
         </div>
+
+        {/* Use Cases (Feature 6) */}
+        {recommendation.useCases && recommendation.useCases.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Lightbulb className="h-4 w-4 text-yellow-500" />
+              <p className="text-sm font-medium text-foreground">Potential Use Cases</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {recommendation.useCases.map((useCase) => (
+                <Badge
+                  key={useCase}
+                  variant="outline"
+                  className="bg-yellow-500/5 text-yellow-600 dark:text-yellow-400 border-yellow-500/20 capitalize"
+                >
+                  {useCase}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -4,11 +4,15 @@ import Link from 'next/link';
 import { ExternalLink, FileText, Calendar, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dataset } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface DatasetCardProps {
   dataset: Dataset;
+  isSelected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
+  showCheckbox?: boolean;
 }
 
 const sourceColors: Record<string, string> = {
@@ -24,7 +28,7 @@ const qualityColors: Record<string, string> = {
   low: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
-export function DatasetCard({ dataset }: DatasetCardProps) {
+export function DatasetCard({ dataset, isSelected = false, onSelect, showCheckbox = false }: DatasetCardProps) {
   let formattedDate = 'Unknown';
   try {
     if (dataset.lastUpdated) {
@@ -44,9 +48,20 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
   };
 
   return (
-    <div className="group rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-lg">
+    <div className={cn(
+      'group rounded-xl border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-lg',
+      isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border',
+    )}>
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          {showCheckbox && (
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={(checked) => onSelect?.(dataset.id, !!checked)}
+              className="mr-1"
+              aria-label={`Select ${dataset.title} for comparison`}
+            />
+          )}
           <Badge variant="outline" className={cn('capitalize', sourceColors[dataset.source])}>
             {dataset.source}
           </Badge>
@@ -109,4 +124,3 @@ export function DatasetCard({ dataset }: DatasetCardProps) {
     </div>
   );
 }
-

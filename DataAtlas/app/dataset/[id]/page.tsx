@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  Download,
   Code,
   ExternalLink,
   Bookmark,
@@ -19,18 +18,28 @@ import {
   BarChart3,
   AlertCircle,
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { MetricsCards } from '@/components/dataset/metrics-cards';
 import { DataPreviewTable } from '@/components/dataset/data-preview-table';
 import { DistributionChart } from '@/components/dataset/distribution-chart';
 import { CorrelationChart } from '@/components/dataset/correlation-chart';
 import { MLRecommendation } from '@/components/dataset/ml-recommendation';
+import { HealthBreakdown } from '@/components/dataset/health-breakdown';
+import { PreprocessingPanel } from '@/components/dataset/preprocessing-panel';
+import { NextStepsPanel } from '@/components/dataset/next-steps-panel';
+import { BiasWarnings } from '@/components/dataset/bias-warnings';
+import { PipelineTracker } from '@/components/dataset/pipeline-tracker';
+import { MissingHeatmap } from '@/components/dataset/missing-heatmap';
+import { TargetFeatureChart } from '@/components/dataset/target-feature-chart';
 import { useAuth } from '@/lib/auth-context';
-import { DatasetDetails, Dataset } from '@/lib/types';
+import { DatasetDetails, Dataset, InsightItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const sourceColors: Record<string, string> = {
@@ -46,6 +55,12 @@ const qualityColors: Record<string, string> = {
   low: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
+const insightSeverityStyles: Record<string, { border: string; bg: string; icon: string }> = {
+  critical: { border: 'border-red-500/30', bg: 'bg-red-500/5', icon: '🔴' },
+  warning: { border: 'border-yellow-500/30', bg: 'bg-yellow-500/5', icon: '⚠️' },
+  info: { border: 'border-blue-500/30', bg: 'bg-blue-500/5', icon: '✅' },
+};
+
 export default function DatasetDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
@@ -56,6 +71,9 @@ export default function DatasetDetailsPage({ params }: { params: Promise<{ id: s
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [selectedInsight, setSelectedInsight] = useState<InsightItem | null>(null);
+  const [hasPreprocessed, setHasPreprocessed] = useState(false);
+  const [showAllInsights, setShowAllInsights] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -180,6 +198,20 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
     alert('Starter code copied to clipboard!');
   };
 
+  // Determine pipeline step
+  const getPipelineStep = () => {
+    if (hasPreprocessed) return 'fix';
+    if (dataset) return 'analyze';
+    return 'search';
+  };
+
+  const getCompletedSteps = () => {
+    const steps = ['search'];
+    if (dataset) steps.push('analyze');
+    if (hasPreprocessed) steps.push('fix');
+    return steps;
+  };
+
   if (authLoading || isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -216,8 +248,8 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
             </div>
             <h3 className="mt-6 text-lg font-semibold text-foreground">Analyzing Dataset</h3>
             <p className="mt-2 max-w-md text-center text-muted-foreground">
-              Downloading the CSV file and running comprehensive analysis including EDA,
-              quality scoring, insight generation, and ML recommendations...
+              Downloading CSV, running comprehensive EDA, quality scoring,
+              bias detection, and generating ML recommendations...
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Badge variant="outline">📥 Downloading CSV</Badge>
@@ -225,6 +257,8 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
               <Badge variant="outline">🧮 Scoring Quality</Badge>
               <Badge variant="outline">💡 Generating Insights</Badge>
               <Badge variant="outline">🤖 ML Recommendations</Badge>
+              <Badge variant="outline">⚖️ Bias Detection</Badge>
+              <Badge variant="outline">📋 Next Steps</Badge>
             </div>
           </div>
         </main>
@@ -273,7 +307,7 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground">Dataset not found</h1>
             <p className="mt-2 text-muted-foreground">
-              The dataset you're looking for doesn't exist or has been removed.
+              The dataset you&apos;re looking for doesn&apos;t exist or has been removed.
             </p>
             <Link href="/dashboard">
               <Button className="mt-4">Back to Dashboard</Button>
@@ -296,6 +330,9 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
       })
     : 'Unknown';
 
+  const insights = dataset?.insights || [];
+  const visibleInsights = showAllInsights ? insights : insights.slice(0, 6);
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader />
@@ -309,6 +346,14 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
           <ArrowLeft className="h-4 w-4" />
           Back to search
         </Link>
+
+        {/* Pipeline Tracker (Feature 8) */}
+        {dataset && (
+          <PipelineTracker
+            currentStep={getPipelineStep()}
+            completedSteps={getCompletedSteps()}
+          />
+        )}
 
         {/* Header */}
         <div className="mb-8">
@@ -385,23 +430,6 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
           </div>
         </div>
 
-        {/* Score explanation */}
-        {dataset?.scoreExplanation && (
-          <section className="mb-8">
-            <Card className="border-primary/20 bg-primary/5">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                  Quality Score: {dataset.score}/100
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{dataset.scoreExplanation}</p>
-              </CardContent>
-            </Card>
-          </section>
-        )}
-
         {/* EDA Warnings */}
         {dataset?.warnings && dataset.warnings.length > 0 && (
           <section className="mb-8">
@@ -417,30 +445,6 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
                   {dataset.warnings.map((warning, i) => (
                     <li key={i} className="text-sm text-muted-foreground">
                       ⚠️ {warning}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          </section>
-        )}
-
-        {/* Insights */}
-        {dataset?.insights && dataset.insights.length > 0 && (
-          <section className="mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lightbulb className="h-5 w-5 text-yellow-500" />
-                  AI-Generated Insights
-                </CardTitle>
-                <CardDescription>Automated analysis findings</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {dataset.insights.map((insight, i) => (
-                    <li key={i} className="text-sm text-muted-foreground">
-                      {insight}
                     </li>
                   ))}
                 </ul>
@@ -483,11 +487,160 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
         {/* Analysis results — only shown when dataset is analyzed */}
         {dataset?.metrics && (
           <>
+            {/* Health Score Breakdown (Feature 3) */}
+            {dataset.scoreBreakdown && (
+              <section className="mb-8">
+                <HealthBreakdown
+                  score={dataset.score || 0}
+                  breakdown={dataset.scoreBreakdown}
+                />
+              </section>
+            )}
+
             {/* Metrics */}
             <section className="mb-8">
               <h2 className="mb-4 text-xl font-semibold text-foreground">Dataset Metrics</h2>
               <MetricsCards metrics={dataset.metrics} />
             </section>
+
+            {/* Interactive Insights (Feature 2) */}
+            {insights.length > 0 && (
+              <section className="mb-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5 text-yellow-500" />
+                      AI-Generated Insights
+                      <Badge variant="secondary">{insights.length}</Badge>
+                    </CardTitle>
+                    <CardDescription>Click any insight for detailed analysis and recommendations</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {visibleInsights.map((insight, i) => {
+                        const style = insightSeverityStyles[insight.severity] || insightSeverityStyles.info;
+
+                        return (
+                          <div
+                            key={i}
+                            className={`rounded-lg border p-3 cursor-pointer transition-all hover:shadow-md ${style.border} ${style.bg}`}
+                            onClick={() => setSelectedInsight(insight)}
+                          >
+                            <div className="flex items-start gap-2">
+                              <span className="text-sm shrink-0">{style.icon}</span>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-foreground line-clamp-1">{insight.title}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{insight.description}</p>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <Badge variant="secondary" className="text-[10px]">{insight.category}</Badge>
+                                  <span className="text-[10px] text-primary cursor-pointer hover:underline">View details →</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {insights.length > 6 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-3 w-full gap-2"
+                        onClick={() => setShowAllInsights(!showAllInsights)}
+                      >
+                        {showAllInsights ? (
+                          <>
+                            <ChevronUp className="h-4 w-4" />
+                            Show fewer insights
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4" />
+                            Show all {insights.length} insights
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Insight Detail Dialog */}
+                <Dialog open={!!selectedInsight} onOpenChange={() => setSelectedInsight(null)}>
+                  <DialogContent className="max-w-lg">
+                    {selectedInsight && (
+                      <>
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <span>{insightSeverityStyles[selectedInsight.severity]?.icon}</span>
+                            {selectedInsight.title}
+                          </DialogTitle>
+                          <DialogDescription>{selectedInsight.description}</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <h4 className="text-sm font-semibold text-foreground mb-1">Why It Matters</h4>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{selectedInsight.why_it_matters}</p>
+                          </div>
+                          <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                            <h4 className="text-sm font-semibold text-foreground mb-1">💡 Suggested Action</h4>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{selectedInsight.suggested_action}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{selectedInsight.category}</Badge>
+                            <Badge
+                              variant="outline"
+                              className={
+                                selectedInsight.severity === 'critical'
+                                  ? 'border-red-500/30 text-red-500'
+                                  : selectedInsight.severity === 'warning'
+                                  ? 'border-yellow-500/30 text-yellow-500'
+                                  : 'border-blue-500/30 text-blue-500'
+                              }
+                            >
+                              {selectedInsight.severity}
+                            </Badge>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              </section>
+            )}
+
+            {/* Bias Detection (Feature 7) */}
+            {dataset.biasWarnings && dataset.biasWarnings.length > 0 && (
+              <section className="mb-8">
+                <BiasWarnings warnings={dataset.biasWarnings} />
+              </section>
+            )}
+
+            {/* Missing Values Map (Feature 9) */}
+            {dataset.metrics.columnTypes.some((c) => c.nullCount > 0) && (
+              <section className="mb-8">
+                <MissingHeatmap
+                  columnTypes={dataset.metrics.columnTypes}
+                  totalRows={dataset.metrics.rows}
+                />
+              </section>
+            )}
+
+            {/* No-Code Preprocessing (Feature 4) */}
+            <section className="mb-8">
+              <PreprocessingPanel
+                datasetId={dataset.id}
+                metrics={dataset.metrics}
+                onPreprocessComplete={() => setHasPreprocessed(true)}
+              />
+            </section>
+
+            {/* What To Do Next (Feature 5) */}
+            {dataset.nextSteps && dataset.nextSteps.length > 0 && (
+              <section className="mb-8">
+                <NextStepsPanel steps={dataset.nextSteps} />
+              </section>
+            )}
 
             {/* Column Info */}
             <section className="mb-8">
@@ -529,6 +682,16 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
               </section>
             )}
 
+            {/* Target vs Feature Correlations (Feature 9) */}
+            {dataset.correlations.length > 0 && (
+              <section className="mb-8">
+                <TargetFeatureChart
+                  correlations={dataset.correlations}
+                  targetColumn={dataset.mlRecommendation?.targetColumn}
+                />
+              </section>
+            )}
+
             {/* Auto EDA Section */}
             {(dataset.distributions.length > 0 || dataset.correlations.length > 0) && (
               <section className="mb-8">
@@ -544,7 +707,7 @@ print(f"Score: {model.score(X_test, y_test):.4f}")
               </section>
             )}
 
-            {/* ML Recommendation */}
+            {/* ML Recommendation (Feature 6 — with use cases) */}
             {dataset.mlRecommendation && (
               <section className="mb-8">
                 <MLRecommendation recommendation={dataset.mlRecommendation} />

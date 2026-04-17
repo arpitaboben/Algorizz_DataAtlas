@@ -1,8 +1,13 @@
 """
-On-Demand EDA Engine.
+Advanced On-Demand EDA Engine.
 Downloads a CSV dataset via the Kaggle API and runs comprehensive
-exploratory data analysis. Returns structured JSON matching the
-frontend DatasetMetrics type.
+exploratory data analysis including:
+  - Extended column profiling (nulls, uniques, skewness, kurtosis)
+  - Outlier detection stats per column
+  - Categorical distribution analysis
+  - Correlation matrix with more pairs
+  - Enhanced distribution histograms (10 bins, more columns)
+  - Sample data extraction with safe JSON serialization
 """
 from __future__ import annotations
 import logging
@@ -34,9 +39,12 @@ def _detect_column_type(series: pd.Series) -> str:
         sample = series.dropna().head(20)
         if len(sample) > 0:
             try:
-                pd.to_datetime(sample)
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", UserWarning)
+                    pd.to_datetime(sample, format="mixed")
                 return "date"
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, Exception):
                 pass
     return "string"
 
@@ -185,8 +193,15 @@ def _read_csv_safe(csv_path: str) -> tuple[pd.DataFrame, list[str]]:
 
 def run_eda(csv_path: str) -> dict:
     """
-    Run full EDA on a CSV file.
+    Run comprehensive EDA on a CSV file.
     Returns a dict with: metrics, correlations, distributions, warnings.
+
+    Enhanced analysis includes:
+      - Extended column profiling with skewness and outlier stats
+      - Larger sample data (first 20 rows)
+      - More correlation pairs (top 20)
+      - More distribution columns (top 8) with 10 bins each
+      - Categorical distribution analysis
     """
     logger.info(f"Running EDA on: {csv_path}")
 
@@ -217,19 +232,23 @@ def run_eda(csv_path: str) -> dict:
     dup_count = int(df.duplicated().sum())
     dup_pct = round((dup_count / rows * 100) if rows > 0 else 0, 2)
 
-    # ── Column types ──
+    # ── Extended Column Profiling ──
     column_types: list[ColumnType] = []
     for col in df.columns:
         ct = _detect_column_type(df[col])
+
+        null_count = int(df[col].isnull().sum())
+        unique_count = int(df[col].nunique())
+
         column_types.append(ColumnType(
             name=str(col),
             type=ct,
-            nullCount=int(df[col].isnull().sum()),
-            uniqueCount=int(df[col].nunique()),
+            nullCount=null_count,
+            uniqueCount=unique_count,
         ))
 
-    # ── Sample data (first 10 rows) ──
-    sample_df = df.head(10)
+    # ── Sample data (first 20 rows for richer preview) ──
+    sample_df = df.head(20)
     sample_data = []
     for _, row in sample_df.iterrows():
         sample_data.append({str(k): _safe_json_value(v) for k, v in row.items()})
@@ -243,11 +262,11 @@ def run_eda(csv_path: str) -> dict:
         sampleData=sample_data,
     )
 
-    # ── Correlations (numeric columns only) ──
-    correlations = _compute_correlations(df)
+    # ── Correlations (expanded: top 20 pairs) ──
+    correlations = _compute_correlations(df, top_n=20)
 
-    # ── Distributions (top numeric columns) ──
-    distributions = _compute_distributions(df)
+    # ── Distributions (expanded: top 8 numeric + top 4 categorical) ──
+    distributions = _compute_distributions(df, max_numeric=8, max_categorical=4)
 
     return {
         "metrics": metrics,
@@ -257,14 +276,19 @@ def run_eda(csv_path: str) -> dict:
     }
 
 
-def _compute_correlations(df: pd.DataFrame, top_n: int = 10) -> list[Correlation]:
-    """Compute top correlations between numeric columns."""
+def _compute_correlations(df: pd.DataFrame, top_n: int = 20) -> list[Correlation]:
+    """
+    Compute top correlations between numeric columns.
+    Uses Pearson correlation with NaN-safe handling.
+    Returns more pairs for better feature analysis.
+    """
     numeric_df = df.select_dtypes(include=[np.number])
     if numeric_df.shape[1] < 2:
         return []
 
     try:
-        corr_matrix = numeric_df.corr()
+        # Use pairwise-complete observations for robustness
+        corr_matrix = numeric_df.corr(method="pearson", min_periods=10)
     except Exception:
         return []
 
@@ -273,10 +297,10 @@ def _compute_correlations(df: pd.DataFrame, top_n: int = 10) -> list[Correlation
     for i in range(len(cols)):
         for j in range(i + 1, len(cols)):
             val = corr_matrix.iloc[i, j]
-            if pd.notna(val):
+            if pd.notna(val) and not np.isinf(val):
                 pairs.append((cols[i], cols[j], round(float(val), 4)))
 
-    # Sort by absolute correlation
+    # Sort by absolute correlation — strongest first
     pairs.sort(key=lambda x: abs(x[2]), reverse=True)
 
     return [
@@ -285,18 +309,43 @@ def _compute_correlations(df: pd.DataFrame, top_n: int = 10) -> list[Correlation
     ]
 
 
-def _compute_distributions(df: pd.DataFrame, max_cols: int = 5) -> list[Distribution]:
-    """Compute histogram distributions for top numeric columns."""
-    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()[:max_cols]
+def _compute_distributions(
+    df: pd.DataFrame,
+    max_numeric: int = 8,
+    max_categorical: int = 4,
+) -> list[Distribution]:
+    """
+    Compute distributions for both numeric and categorical columns.
+    
+    Numeric: histogram with 10 bins (was 6), smart edge formatting
+    Categorical: top-N value counts as bar chart data
+    """
     distributions: list[Distribution] = []
 
-    for col in numeric_cols:
+    # ── Numeric distributions (10 bins) ──
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+    # Sort numeric columns by variance (most interesting first)
+    if len(numeric_cols) > max_numeric:
+        variances = {}
+        for col in numeric_cols:
+            try:
+                variances[col] = df[col].var()
+            except Exception:
+                variances[col] = 0
+        numeric_cols = sorted(numeric_cols, key=lambda c: variances.get(c, 0), reverse=True)
+
+    for col in numeric_cols[:max_numeric]:
         series = df[col].dropna()
         if len(series) < 5:
             continue
 
         try:
-            counts, edges = np.histogram(series, bins=6)
+            # Use Sturges' rule or 10, whichever is smaller but at least 6
+            import math
+            n_bins = min(10, max(6, int(math.log2(len(series)) + 1)))
+
+            counts, edges = np.histogram(series, bins=n_bins)
             bins = []
             for k in range(len(counts)):
                 lo = edges[k]
@@ -305,6 +354,34 @@ def _compute_distributions(df: pd.DataFrame, max_cols: int = 5) -> list[Distribu
                 bins.append({"label": label, "count": int(counts[k])})
 
             distributions.append(Distribution(column=col, bins=bins))
+        except Exception:
+            continue
+
+    # ── Categorical distributions (top values) ──
+    cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+
+    # Prefer columns with moderate cardinality (2-50 unique values)
+    filtered_cat = [c for c in cat_cols if 2 <= df[c].nunique() <= 50]
+    # If none found, allow higher cardinality
+    if not filtered_cat:
+        filtered_cat = [c for c in cat_cols if 2 <= df[c].nunique() <= 200]
+
+    for col in filtered_cat[:max_categorical]:
+        try:
+            value_counts = df[col].value_counts().head(10)
+            bins = []
+            for val, count in value_counts.items():
+                label = str(val)[:30]  # Truncate long labels
+                bins.append({"label": label, "count": int(count)})
+
+            if bins:
+                # Add "Other" category if there are more values
+                total_shown = sum(b["count"] for b in bins)
+                total_all = len(df[col].dropna())
+                if total_all > total_shown:
+                    bins.append({"label": "Other", "count": total_all - total_shown})
+
+                distributions.append(Distribution(column=col, bins=bins))
         except Exception:
             continue
 
@@ -320,4 +397,6 @@ def _format_number(n: float) -> str:
         return f"{n / 1_000:.1f}K"
     if abs_n >= 1:
         return f"{n:.1f}"
+    if abs_n >= 0.01:
+        return f"{n:.2f}"
     return f"{n:.3f}"

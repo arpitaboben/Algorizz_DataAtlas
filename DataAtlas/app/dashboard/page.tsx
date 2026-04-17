@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Database, TrendingUp, AlertCircle } from 'lucide-react';
+import { Loader2, Database, TrendingUp, AlertCircle, GitCompare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { SearchForm } from '@/components/dashboard/search-form';
 import { DatasetCard } from '@/components/dashboard/dataset-card';
@@ -24,6 +25,8 @@ export default function DashboardPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [restoredQuery, setRestoredQuery] = useState('');
+  const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set());
+  const [compareMode, setCompareMode] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -53,6 +56,8 @@ export default function DashboardPage() {
     setIsSearching(true);
     setHasSearched(true);
     setSearchError(null);
+    setSelectedForCompare(new Set());
+    setCompareMode(false);
 
     try {
       const response = await fetch('/api/search', {
@@ -100,6 +105,31 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const handleSelectForCompare = (id: string, selected: boolean) => {
+    setSelectedForCompare((prev) => {
+      const next = new Set(prev);
+      if (selected) {
+        if (next.size < 2) next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleCompare = () => {
+    const ids = Array.from(selectedForCompare);
+    if (ids.length === 2) {
+      // Store the dataset info for the datasets that need analysis
+      ids.forEach((id) => {
+        const ds = datasets.find((d) => d.id === id);
+        if (ds) sessionStorage.setItem(`dataset-${id}`, JSON.stringify(ds));
+      });
+      sessionStorage.setItem('compare_dataset_ids', JSON.stringify(ids));
+      router.push('/compare');
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -145,18 +175,62 @@ export default function DashboardPage() {
           ) : hasSearched ? (
             datasets.length > 0 ? (
               <>
-                <div className="mb-4 flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    Found <span className="font-medium text-foreground">{datasets.length}</span> datasets
-                  </p>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <TrendingUp className="h-4 w-4" />
-                    Sorted by AI relevance
+                <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm text-muted-foreground">
+                      Found <span className="font-medium text-foreground">{datasets.length}</span> datasets
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <TrendingUp className="h-4 w-4" />
+                      Sorted by AI relevance
+                    </div>
+                  </div>
+
+                  {/* Compare controls */}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant={compareMode ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => {
+                        setCompareMode(!compareMode);
+                        if (compareMode) setSelectedForCompare(new Set());
+                      }}
+                      className="gap-2"
+                    >
+                      <GitCompare className="h-4 w-4" />
+                      {compareMode ? 'Cancel Compare' : 'Compare Datasets'}
+                    </Button>
+
+                    {compareMode && selectedForCompare.size === 2 && (
+                      <Button size="sm" onClick={handleCompare} className="gap-2 animate-in fade-in">
+                        <GitCompare className="h-4 w-4" />
+                        Compare {selectedForCompare.size} Datasets
+                      </Button>
+                    )}
+
+                    {compareMode && selectedForCompare.size < 2 && (
+                      <span className="text-xs text-muted-foreground">
+                        Select {2 - selectedForCompare.size} more dataset{2 - selectedForCompare.size > 1 ? 's' : ''}
+                      </span>
+                    )}
                   </div>
                 </div>
+
+                {compareMode && (
+                  <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+                    💡 Select exactly 2 datasets to compare. Both must be analyzed first (click &quot;View &amp; Analyze&quot; on each).
+                  </div>
+                )}
+
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {datasets.map((dataset) => (
-                    <DatasetCard key={dataset.id} dataset={dataset} />
+                    <DatasetCard
+                      key={dataset.id}
+                      dataset={dataset}
+                      showCheckbox={compareMode}
+                      isSelected={selectedForCompare.has(dataset.id)}
+                      onSelect={handleSelectForCompare}
+                    />
                   ))}
                 </div>
               </>
