@@ -11,3 +11,4 @@ node_modules/
 new_test.py
 test.py
 new.json
+.vscode/

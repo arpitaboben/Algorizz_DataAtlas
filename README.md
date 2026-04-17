@@ -54,7 +54,7 @@ An intelligent platform that helps data scientists and ML engineers **discover, 
 ## 📂 Project Structure
 
 ```
-Data Atlas/
+DataAtlas/
 ├── Backend/                    # FastAPI backend
 │   ├── main.py                 # App entry point + CORS + model loading
 │   ├── config.py               # Environment configuration

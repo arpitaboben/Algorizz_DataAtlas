@@ -62,7 +62,7 @@ Loading embedding model (all-MiniLM-L6-v2)...
 ✅ Embedding model loaded successfully
 📡 Available data sources: Kaggle, HuggingFace (public API), GitHub (public API)
 ```
-
+....
 > The first startup downloads the AI model (~90MB). Subsequent starts are instant.
 
 **Verify:** Open http://localhost:8000/api/health — should return available sources.
