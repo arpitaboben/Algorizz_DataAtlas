@@ -1,8 +1,65 @@
 'use client';
 
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Zap, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { DatasetDetailModal } from './dataset-detail-modal';
+import { UnsupportedDatasetModal } from './unsupported-dataset-modal';
+import { Dataset } from '@/lib/types';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+
+const sampleDatasets: Dataset[] = [
+  {
+    id: 'cifar-100',
+    title: 'CIFAR-100 Enhanced',
+    description: 'Image classification · 100 classes · 60K samples',
+    source: 'kaggle',
+    format: 'csv',
+    size: '2.3GB',
+    sizeBytes: 2470000000,
+    relevanceScore: 87,
+    qualityScore: 'high',
+    downloadUrl: '#',
+    tags: ['Image Classification', 'Computer Vision', 'Transfer Learning'],
+    lastUpdated: new Date().toISOString(),
+    author: 'CIFAR Dataset',
+    license: 'CC0 Public',
+  },
+  {
+    id: 'titanic-clean',
+    title: 'Titanic Dataset (Cleaned)',
+    description: 'Passenger survival prediction · 891 records · 12 features',
+    source: 'kaggle',
+    format: 'csv',
+    size: '61KB',
+    sizeBytes: 61000,
+    relevanceScore: 92,
+    qualityScore: 'high',
+    downloadUrl: '#',
+    tags: ['Classification', 'Structured Data', 'Popular Dataset'],
+    lastUpdated: new Date().toISOString(),
+    author: 'Kaggle',
+    license: 'CC0 Public',
+  },
+];
 
 export function DemoSection() {
+  const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isUnsupportedModalOpen, setIsUnsupportedModalOpen] = useState(false);
+
+  const handleDatasetClick = (dataset: Dataset) => {
+    // Check if image dataset
+    if (dataset.id === 'cifar-100') {
+      setSelectedDataset(dataset);
+      setIsUnsupportedModalOpen(true);
+    } else {
+      setSelectedDataset(dataset);
+      setIsDetailModalOpen(true);
+    }
+  };
+
   return (
     <section className="relative py-20 sm:py-32 overflow-hidden">
       {/* Background */}
@@ -73,11 +130,80 @@ export function DemoSection() {
           </div>
         </div>
 
+        {/* Sample datasets - Interactive section */}
+        <div className="mt-16">
+          <h3 className="text-2xl font-bold text-foreground mb-6">Try Clicking on Datasets</h3>
+          <div className="grid md:grid-cols-2 gap-4 mb-12">
+            {sampleDatasets.map((dataset) => (
+              <div
+                key={dataset.id}
+                onClick={() => handleDatasetClick(dataset)}
+                className="group cursor-pointer rounded-xl border border-primary/20 bg-card/40 backdrop-blur-lg p-6 transition-all hover:border-primary/50 hover:shadow-lg hover:scale-102 active:scale-98"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                        {dataset.title}
+                      </h4>
+                      {dataset.id === 'cifar-100' && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                              CV Dataset
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Analysis currently available for tabular datasets only
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {dataset.id !== 'cifar-100' && (
+                        <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                          Supported
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{dataset.description}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground mb-1">Quality</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {dataset.qualityScore === 'high' ? '87' : '75'}/100
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mb-3">
+                  <Badge variant="secondary" className="text-xs">{dataset.format.toUpperCase()}</Badge>
+                  <Badge variant="secondary" className="text-xs">{dataset.size}</Badge>
+                  <Badge variant="secondary" className="text-xs">Relevance {Math.round(dataset.relevanceScore)}%</Badge>
+                </div>
+
+                {/* Hover indicator */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground group-hover:text-primary transition-colors pt-2 border-t border-border/30">
+                  {dataset.id === 'cifar-100' ? (
+                    <>
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>Click to see more</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-3.5 w-3.5" />
+                      <span>Click to analyze</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Sample output */}
         <div className="mt-16">
           <div className="rounded-2xl border border-primary/30 bg-card/40 backdrop-blur-lg overflow-hidden">
             <div className="p-8 sm:p-12">
-              <h3 className="text-2xl font-bold text-foreground mb-8">Sample Dataset Output</h3>
+              <h3 className="text-2xl font-bold text-foreground mb-8">Sample Analysis Output</h3>
 
               {/* Dataset result card */}
               <div className="grid lg:grid-cols-3 gap-6">
@@ -160,6 +286,17 @@ export function DemoSection() {
             </div>
           </div>
         </div>
+
+        <DatasetDetailModal
+          dataset={selectedDataset}
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+        />
+        <UnsupportedDatasetModal
+          dataset={selectedDataset}
+          isOpen={isUnsupportedModalOpen}
+          onClose={() => setIsUnsupportedModalOpen(false)}
+        />
       </div>
     </section>
   );
