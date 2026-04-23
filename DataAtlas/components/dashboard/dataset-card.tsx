@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ExternalLink, FileText, Calendar, User } from 'lucide-react';
+import { ExternalLink, FileText, Calendar, User, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Dataset } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -13,7 +14,13 @@ interface DatasetCardProps {
   isSelected?: boolean;
   onSelect?: (id: string, selected: boolean) => void;
   showCheckbox?: boolean;
+  isSupported?: boolean;
+  onCardClick?: (dataset: Dataset) => void;
 }
+
+const isImageDataset = (format: string): boolean => {
+  return ['image', 'jpeg', 'jpg', 'png', 'gif', 'bmp'].includes(format.toLowerCase());
+};
 
 const sourceColors: Record<string, string> = {
   kaggle: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -37,7 +44,14 @@ const qualityColors: Record<string, string> = {
   low: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
-export function DatasetCard({ dataset, isSelected = false, onSelect, showCheckbox = false }: DatasetCardProps) {
+export function DatasetCard({
+  dataset,
+  isSelected = false,
+  onSelect,
+  showCheckbox = false,
+  isSupported = true,
+  onCardClick,
+}: DatasetCardProps) {
   let formattedDate = 'Unknown';
   try {
     if (dataset.lastUpdated) {
@@ -51,9 +65,15 @@ export function DatasetCard({ dataset, isSelected = false, onSelect, showCheckbo
     formattedDate = 'Unknown';
   }
 
-  const handleClick = () => {
-    // Store dataset info so the detail page can access it for analysis
-    sessionStorage.setItem(`dataset-${dataset.id}`, JSON.stringify(dataset));
+  const isImage = isImageDataset(dataset.format);
+
+  const handleCardClick = () => {
+    if (onCardClick) {
+      onCardClick(dataset);
+    } else {
+      // Store dataset info so the detail page can access it for analysis
+      sessionStorage.setItem(`dataset-${dataset.id}`, JSON.stringify(dataset));
+    }
   };
 
   const buttonLabel = dataset.source === 'kaggle'
@@ -63,10 +83,14 @@ export function DatasetCard({ dataset, isSelected = false, onSelect, showCheckbo
     : 'View & Analyze';
 
   return (
-    <div className={cn(
-      'group rounded-xl border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-lg',
-      isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border',
-    )}>
+    <div
+      onClick={handleCardClick}
+      className={cn(
+        'group rounded-xl border bg-card p-5 transition-all hover:border-primary/50 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer',
+        isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-border',
+        isImage && !isSupported && 'opacity-90',
+      )}
+    >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {showCheckbox && (
@@ -83,6 +107,19 @@ export function DatasetCard({ dataset, isSelected = false, onSelect, showCheckbo
           <Badge variant="outline" className={cn('capitalize', qualityColors[dataset.qualityScore])}>
             {dataset.qualityScore} quality
           </Badge>
+          {isImage && !isSupported && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Limited Support
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                Analysis currently available for tabular datasets only
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
           <span className="text-sm font-bold text-primary">{Math.round(dataset.relevanceScore)}%</span>
@@ -130,12 +167,19 @@ export function DatasetCard({ dataset, isSelected = false, onSelect, showCheckbo
         )}
       </div>
 
-      <Link href={`/dataset/${dataset.id}`} onClick={handleClick}>
-        <Button className="w-full gap-2" size="sm">
-          {buttonLabel}
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Button>
-      </Link>
+      <div className={isImage && !isSupported ? 'opacity-60' : ''}>
+        <Link href={`/dataset/${dataset.id}`} onClick={handleCardClick}>
+          <Button
+            className="w-full gap-2"
+            size="sm"
+            disabled={isImage && !isSupported}
+            title={isImage && !isSupported ? 'Image dataset analysis coming soon' : undefined}
+          >
+            {isImage && !isSupported ? 'Analyze (Coming Soon)' : buttonLabel}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
