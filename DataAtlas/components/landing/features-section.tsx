@@ -64,7 +64,7 @@ const otherFeatures = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="relative py-20 sm:py-32 overflow-hidden">
+    <section id="features" className="relative py-12 sm:py-16 overflow-hidden">
       {/* Background */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-primary/10 blur-3xl opacity-40" />

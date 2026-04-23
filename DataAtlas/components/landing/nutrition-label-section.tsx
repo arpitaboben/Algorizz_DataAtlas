@@ -18,7 +18,7 @@ const metrics: NutritionMetric[] = [
 
 export function NutritionLabelSection() {
   return (
-    <section className="relative py-20 sm:py-32 overflow-hidden">
+    <section className="relative py-12 sm:py-16 overflow-hidden">
       {/* Background elements */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-primary/10 blur-3xl opacity-40" />
@@ -34,14 +34,14 @@ export function NutritionLabelSection() {
             </div>
 
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-6 leading-tight">
-              The Data{' '}
+              Dataset{' '}
               <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
-                Nutrition Label
+                Health Score
               </span>
             </h2>
 
             <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-              Just like food has a nutrition label, datasets need one too. Our AI-powered analysis gives you instant insights into dataset quality, freshness, bias, and privacy—all in one visual dashboard.
+              Understand dataset quality at a glance. Our AI-powered analysis evaluates completeness, reliability, bias, and data freshness—giving you confidence before you build.
             </p>
 
             <div className="space-y-4">

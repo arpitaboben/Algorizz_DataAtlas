@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden pt-20 pb-20 sm:pt-32 sm:pb-32 lg:pt-40 lg:pb-40">
+    <section className="relative overflow-hidden pt-16 pb-16 sm:pt-24 sm:pb-24 lg:pt-32 lg:pb-32">
       {/* Animated background elements */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* Gradient orb 1 */}
@@ -79,11 +79,11 @@ export function HeroSection() {
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1 flex-1">
-                      <h3 className="font-semibold text-foreground text-sm">ImageNet Subset</h3>
-                      <p className="text-xs text-muted-foreground">Computer Vision Dataset</p>
+                      <h3 className="font-semibold text-foreground text-sm">House Prices Dataset</h3>
+                      <p className="text-xs text-muted-foreground">Tabular Dataset</p>
                     </div>
                     <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
-                      Premium
+                      Popular
                     </Badge>
                   </div>
                 </div>
@@ -102,24 +102,24 @@ export function HeroSection() {
                 {/* Metrics grid */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-lg bg-secondary/50 p-3 text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Bias</div>
-                    <div className="font-semibold text-sm text-foreground">Low</div>
+                    <div className="text-xs text-muted-foreground mb-1">Rows</div>
+                    <div className="font-semibold text-sm text-foreground">14.6K</div>
+                  </div>
+                  <div className="rounded-lg bg-secondary/50 p-3 text-center">
+                    <div className="text-xs text-muted-foreground mb-1">Columns</div>
+                    <div className="font-semibold text-sm text-foreground">80</div>
                   </div>
                   <div className="rounded-lg bg-secondary/50 p-3 text-center">
                     <div className="text-xs text-muted-foreground mb-1">Missing</div>
-                    <div className="font-semibold text-sm text-foreground">12%</div>
-                  </div>
-                  <div className="rounded-lg bg-secondary/50 p-3 text-center">
-                    <div className="text-xs text-muted-foreground mb-1">Size</div>
-                    <div className="font-semibold text-sm text-foreground">450MB</div>
+                    <div className="font-semibold text-sm text-foreground">8%</div>
                   </div>
                 </div>
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="text-xs">Image Classification</Badge>
-                  <Badge variant="secondary" className="text-xs">10k Images</Badge>
-                  <Badge variant="secondary" className="text-xs">1000 Classes</Badge>
+                  <Badge variant="secondary" className="text-xs">Regression</Badge>
+                  <Badge variant="secondary" className="text-xs">Tabular</Badge>
+                  <Badge variant="secondary" className="text-xs">CSV</Badge>
                 </div>
 
                 {/* Mini chart visualization */}
@@ -151,7 +151,7 @@ export function HeroSection() {
                   <AlertCircle className="h-4 w-4 text-amber-500" />
                   <span className="text-xs font-medium text-muted-foreground">Note</span>
                 </div>
-                <p className="text-xs text-foreground">Perfect for CV models</p>
+                <p className="text-xs text-foreground">Excellent for regression models</p>
               </div>
             </div>
           </div>

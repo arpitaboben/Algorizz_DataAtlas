@@ -5,25 +5,24 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DatasetDetailModal } from './dataset-detail-modal';
-import { UnsupportedDatasetModal } from './unsupported-dataset-modal';
 import { Dataset } from '@/lib/types';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const sampleDatasets: Dataset[] = [
   {
-    id: 'cifar-100',
-    title: 'CIFAR-100 Enhanced',
-    description: 'Image classification · 100 classes · 60K samples',
+    id: 'house-prices',
+    title: 'House Prices Dataset',
+    description: 'Real estate price prediction · 14.6K houses · 80 features',
     source: 'kaggle',
     format: 'csv',
-    size: '2.3GB',
-    sizeBytes: 2470000000,
-    relevanceScore: 87,
+    size: '12MB',
+    sizeBytes: 12000000,
+    relevanceScore: 92,
     qualityScore: 'high',
     downloadUrl: '#',
-    tags: ['Image Classification', 'Computer Vision', 'Transfer Learning'],
+    tags: ['Regression', 'Tabular Data', 'Real Estate'],
     lastUpdated: new Date().toISOString(),
-    author: 'CIFAR Dataset',
+    author: 'Kaggle',
     license: 'CC0 Public',
   },
   {
@@ -34,10 +33,10 @@ const sampleDatasets: Dataset[] = [
     format: 'csv',
     size: '61KB',
     sizeBytes: 61000,
-    relevanceScore: 92,
+    relevanceScore: 88,
     qualityScore: 'high',
     downloadUrl: '#',
-    tags: ['Classification', 'Structured Data', 'Popular Dataset'],
+    tags: ['Classification', 'Structured Data', 'Popular'],
     lastUpdated: new Date().toISOString(),
     author: 'Kaggle',
     license: 'CC0 Public',
@@ -47,21 +46,14 @@ const sampleDatasets: Dataset[] = [
 export function DemoSection() {
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isUnsupportedModalOpen, setIsUnsupportedModalOpen] = useState(false);
 
   const handleDatasetClick = (dataset: Dataset) => {
-    // Check if image dataset
-    if (dataset.id === 'cifar-100') {
-      setSelectedDataset(dataset);
-      setIsUnsupportedModalOpen(true);
-    } else {
-      setSelectedDataset(dataset);
-      setIsDetailModalOpen(true);
-    }
+    setSelectedDataset(dataset);
+    setIsDetailModalOpen(true);
   };
 
   return (
-    <section className="relative py-20 sm:py-32 overflow-hidden">
+    <section className="relative py-12 sm:py-16 overflow-hidden">
       {/* Background */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute bottom-0 right-0 h-80 w-96 rounded-full bg-blue-500/10 blur-3xl opacity-40" />
@@ -146,23 +138,9 @@ export function DemoSection() {
                       <h4 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
                         {dataset.title}
                       </h4>
-                      {dataset.id === 'cifar-100' && (
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
-                              CV Dataset
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Analysis currently available for tabular datasets only
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                      {dataset.id !== 'cifar-100' && (
-                        <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
-                          Supported
-                        </Badge>
-                      )}
+                      <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                        Supported
+                      </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{dataset.description}</p>
                   </div>
@@ -182,17 +160,8 @@ export function DemoSection() {
 
                 {/* Hover indicator */}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground group-hover:text-primary transition-colors pt-2 border-t border-border/30">
-                  {dataset.id === 'cifar-100' ? (
-                    <>
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      <span>Click to see more</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-3.5 w-3.5" />
-                      <span>Click to analyze</span>
-                    </>
-                  )}
+                  <Zap className="h-3.5 w-3.5" />
+                  <span>Click to analyze</span>
                 </div>
               </div>
             ))}
@@ -212,12 +181,12 @@ export function DemoSection() {
                   <div className="rounded-xl bg-secondary/40 border border-border/50 p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h4 className="text-lg font-bold text-foreground">CIFAR-100 Enhanced</h4>
-                        <p className="text-sm text-muted-foreground mt-1">Image classification · 100 classes · 60K samples</p>
+                        <h4 className="text-lg font-bold text-foreground">House Prices Dataset</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Real estate price prediction · 14.6K records · 80 features</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground mb-1">Quality Score</p>
-                        <p className="text-2xl font-bold text-primary">87/100</p>
+                        <p className="text-2xl font-bold text-primary">92/100</p>
                       </div>
                     </div>
                   </div>
@@ -225,10 +194,10 @@ export function DemoSection() {
                   {/* Metrics breakdown */}
                   <div className="grid grid-cols-2 gap-4">
                     {[
-                      { label: 'Completeness', value: '98%', icon: '✓' },
-                      { label: 'Freshness', value: 'Current', icon: '📅' },
-                      { label: 'Bias Level', value: 'Low', icon: '⚖️' },
-                      { label: 'Missing Values', value: '0.2%', icon: '📊' },
+                      { label: 'Total Rows', value: '14.6K', icon: '✓' },
+                      { label: 'Features', value: '80', icon: '📊' },
+                      { label: 'Missing Data', value: '8%', icon: '⚖️' },
+                      { label: 'Data Freshness', value: 'Recent', icon: '📅' },
                     ].map((metric) => (
                       <div key={metric.label} className="rounded-lg bg-muted/50 p-4">
                         <p className="text-xs text-muted-foreground mb-2">{metric.label}</p>
@@ -241,7 +210,7 @@ export function DemoSection() {
                   <div className="rounded-lg border border-border/50 bg-muted/30 p-6">
                     <h5 className="font-semibold text-foreground mb-3">Recommended ML Tasks</h5>
                     <div className="space-y-2">
-                      {['Image Classification', 'Transfer Learning', 'Data Augmentation', 'Ensemble Methods'].map((task) => (
+                      {['Price Regression', 'Feature Engineering', 'Outlier Detection', 'Model Ensemble'].map((task) => (
                         <div key={task} className="flex items-center gap-2 text-sm text-muted-foreground">
                           <ArrowRight className="h-4 w-4 text-primary" />
                           {task}
@@ -258,19 +227,19 @@ export function DemoSection() {
                     <div className="space-y-3">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Size</p>
-                        <p className="font-semibold text-foreground">2.3GB</p>
+                        <p className="font-semibold text-foreground">12MB</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">Format</p>
-                        <p className="font-semibold text-foreground">PNG Images</p>
+                        <p className="font-semibold text-foreground">CSV</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">License</p>
                         <p className="font-semibold text-foreground">CC0 Public</p>
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">Updates</p>
-                        <p className="font-semibold text-foreground">Monthly</p>
+                        <p className="text-xs text-muted-foreground mb-1">Task Type</p>
+                        <p className="font-semibold text-foreground">Regression</p>
                       </div>
                     </div>
                   </div>
@@ -278,7 +247,7 @@ export function DemoSection() {
                   <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-6">
                     <p className="text-sm font-semibold text-foreground mb-3">Why This Dataset?</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      High quality metrics, minimal preprocessing needed, and excellent for multi-class classification tasks.
+                      Clean tabular data with excellent quality scores, minimal missing values, and ideal for regression modeling.
                     </p>
                   </div>
                 </div>
@@ -291,11 +260,6 @@ export function DemoSection() {
           dataset={selectedDataset}
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
-        />
-        <UnsupportedDatasetModal
-          dataset={selectedDataset}
-          isOpen={isUnsupportedModalOpen}
-          onClose={() => setIsUnsupportedModalOpen(false)}
         />
       </div>
     </section>

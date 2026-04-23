@@ -25,7 +25,7 @@ const storySteps = [
 
 export function StorySection() {
   return (
-    <section className="relative py-20 sm:py-32 overflow-hidden">
+    <section className="relative py-12 sm:py-16 overflow-hidden">
       {/* Background element */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />

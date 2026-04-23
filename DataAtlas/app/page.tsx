@@ -4,6 +4,7 @@ import { StorySection } from '@/components/landing/story-section';
 import { NutritionLabelSection } from '@/components/landing/nutrition-label-section';
 import { FeaturesSection } from '@/components/landing/features-section';
 import { DemoSection } from '@/components/landing/demo-section';
+import { ArchitectureSection } from '@/components/landing/architecture-section';
 import { CTASection } from '@/components/landing/cta-section';
 import { Footer } from '@/components/landing/footer';
 
@@ -17,6 +18,7 @@ export default function LandingPage() {
         <NutritionLabelSection />
         <FeaturesSection />
         <DemoSection />
+        <ArchitectureSection />
         <CTASection />
       </main>
       <Footer />

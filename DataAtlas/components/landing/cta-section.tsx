@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 
 export function CTASection() {
   return (
-    <section className="relative py-20 sm:py-32 overflow-hidden">
+    <section className="relative py-12 sm:py-16 overflow-hidden">
       {/* Animated background */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-blue-500/5" />
