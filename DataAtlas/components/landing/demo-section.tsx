@@ -1,0 +1,166 @@
+'use client';
+
+import { ArrowRight, Check } from 'lucide-react';
+
+export function DemoSection() {
+  return (
+    <section className="relative py-20 sm:py-32 overflow-hidden">
+      {/* Background */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute bottom-0 right-0 h-80 w-96 rounded-full bg-blue-500/10 blur-3xl opacity-40" />
+      </div>
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-16 text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4">
+            From Chaos to Clarity
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            See how DataAtlas transforms your dataset discovery workflow.
+          </p>
+        </div>
+
+        {/* Before / After comparison */}
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* BEFORE */}
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 backdrop-blur-lg overflow-hidden">
+            <div className="p-8 border-b border-destructive/20 bg-destructive/10">
+              <h3 className="text-lg font-bold text-foreground">Without DataAtlas</h3>
+              <p className="text-sm text-muted-foreground mt-1">Hours of manual work</p>
+            </div>
+
+            <div className="p-8 space-y-4">
+              {[
+                'Search Kaggle manually for hours',
+                'Jump between GitHub and HuggingFace',
+                'Download datasets to evaluate locally',
+                'Spend days on exploratory analysis',
+                'Manually check for bias and quality',
+                'Guess which ML models fit best',
+                'Write preprocessing code from scratch',
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="mt-1 h-1.5 w-1.5 rounded-full bg-destructive flex-shrink-0" />
+                  <span className="text-sm text-muted-foreground">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* AFTER */}
+          <div className="rounded-2xl border border-green-500/30 bg-green-500/5 backdrop-blur-lg overflow-hidden">
+            <div className="p-8 border-b border-green-500/20 bg-green-500/10">
+              <h3 className="text-lg font-bold text-foreground">With DataAtlas</h3>
+              <p className="text-sm text-muted-foreground mt-1">Minutes to actionable insights</p>
+            </div>
+
+            <div className="p-8 space-y-4">
+              {[
+                'Search all sources with semantic understanding',
+                'View quality metrics instantly',
+                'Analyze datasets without downloading',
+                'Auto-generated EDA in seconds',
+                'AI-detected bias and quality scores',
+                'ML task recommendations built-in',
+                'Generated starter code ready to use',
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <Check className="mt-0.5 h-4 w-4 text-green-500 flex-shrink-0" />
+                  <span className="text-sm text-muted-foreground">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sample output */}
+        <div className="mt-16">
+          <div className="rounded-2xl border border-primary/30 bg-card/40 backdrop-blur-lg overflow-hidden">
+            <div className="p-8 sm:p-12">
+              <h3 className="text-2xl font-bold text-foreground mb-8">Sample Dataset Output</h3>
+
+              {/* Dataset result card */}
+              <div className="grid lg:grid-cols-3 gap-6">
+                {/* Main info */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="rounded-xl bg-secondary/40 border border-border/50 p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h4 className="text-lg font-bold text-foreground">CIFAR-100 Enhanced</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Image classification · 100 classes · 60K samples</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground mb-1">Quality Score</p>
+                        <p className="text-2xl font-bold text-primary">87/100</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Metrics breakdown */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: 'Completeness', value: '98%', icon: '✓' },
+                      { label: 'Freshness', value: 'Current', icon: '📅' },
+                      { label: 'Bias Level', value: 'Low', icon: '⚖️' },
+                      { label: 'Missing Values', value: '0.2%', icon: '📊' },
+                    ].map((metric) => (
+                      <div key={metric.label} className="rounded-lg bg-muted/50 p-4">
+                        <p className="text-xs text-muted-foreground mb-2">{metric.label}</p>
+                        <p className="text-lg font-bold text-foreground">{metric.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Recommended tasks */}
+                  <div className="rounded-lg border border-border/50 bg-muted/30 p-6">
+                    <h5 className="font-semibold text-foreground mb-3">Recommended ML Tasks</h5>
+                    <div className="space-y-2">
+                      {['Image Classification', 'Transfer Learning', 'Data Augmentation', 'Ensemble Methods'].map((task) => (
+                        <div key={task} className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <ArrowRight className="h-4 w-4 text-primary" />
+                          {task}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick stats sidebar */}
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-primary/30 bg-primary/10 p-6">
+                    <p className="text-xs text-primary font-medium mb-4">QUICK INSIGHTS</p>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Size</p>
+                        <p className="font-semibold text-foreground">2.3GB</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Format</p>
+                        <p className="font-semibold text-foreground">PNG Images</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">License</p>
+                        <p className="font-semibold text-foreground">CC0 Public</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Updates</p>
+                        <p className="font-semibold text-foreground">Monthly</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-6">
+                    <p className="text-sm font-semibold text-foreground mb-3">Why This Dataset?</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      High quality metrics, minimal preprocessing needed, and excellent for multi-class classification tasks.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

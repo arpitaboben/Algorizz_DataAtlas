@@ -1,10 +1,10 @@
 import { LandingHeader } from '@/components/landing/header';
 import { HeroSection } from '@/components/landing/hero-section';
-import { ProblemSection } from '@/components/landing/problem-section';
-import { SolutionSection } from '@/components/landing/solution-section';
+import { StorySection } from '@/components/landing/story-section';
+import { NutritionLabelSection } from '@/components/landing/nutrition-label-section';
 import { FeaturesSection } from '@/components/landing/features-section';
-import { TechStackSection } from '@/components/landing/tech-stack-section';
-import { ArchitectureSection } from '@/components/landing/architecture-section';
+import { DemoSection } from '@/components/landing/demo-section';
+import { CTASection } from '@/components/landing/cta-section';
 import { Footer } from '@/components/landing/footer';
 
 export default function LandingPage() {
@@ -13,11 +13,11 @@ export default function LandingPage() {
       <LandingHeader />
       <main>
         <HeroSection />
-        <ProblemSection />
-        <SolutionSection />
+        <StorySection />
+        <NutritionLabelSection />
         <FeaturesSection />
-        <TechStackSection />
-        <ArchitectureSection />
+        <DemoSection />
+        <CTASection />
       </main>
       <Footer />
     </div>
